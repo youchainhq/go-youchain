@@ -138,6 +138,10 @@ func (s *Server) verifyCascadingFields(chain consensus.ChainReader, header *type
 		return consensus.ErrUnknownAncestor
 	}
 
+	if header.Time <= parentHeader.Time {
+		return consensus.ErrOlderBlockTime
+	}
+
 	local := chain.GetHeaderByNumber(header.Number.Uint64())
 	if local != nil && header.Hash() != local.Hash() {
 		logging.Error("Exist canonical", "localHash", local.Hash().String(), "headerHash", header.Hash().String())

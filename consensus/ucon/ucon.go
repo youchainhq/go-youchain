@@ -214,6 +214,39 @@ func (s *Server) StartMining(chain consensus.ChainReader, inserter consensus.Min
 	return nil
 }
 
+func (s *Server) Restart() error {
+	if s.rawSk == nil {
+		return consensus.ErrValKeyNotSet
+	}
+	if s.blsSk == nil {
+		return consensus.ErrBlsKeyNotSet
+	}
+	s.startMiningLock.Lock()
+	defer s.startMiningLock.Unlock()
+	if s.isMining() {
+		logging.Info("Ucon Already Started")
+		return nil
+	}
+
+	s.quitChan = make(chan bool, 1)
+
+	err := s.StartNewRound(true)
+	if err != nil {
+		return err
+	}
+
+	s.eventSub = s.eventMux.Subscribe(core.InsertBlockEvent{}, CommitEvent{}, RoundIndexChangeEvent{}, UpdateExistedHeaderEvent{}) //, ReceivedMsgEvent{})
+	go s.eventLoop()
+
+	s.msgHandler.Start()
+	s.proposal.Start()
+	s.voter.Start(s)
+	s.timer.Start()
+
+	atomic.StoreInt32(&s.alreadyStarted, 1)
+	return nil
+}
+
 // Stop the engine
 func (s *Server) Stop() error {
 	if !atomic.CompareAndSwapInt32(&s.alreadyStarted, 1, 0) {
