@@ -63,6 +63,8 @@ type YouChain struct {
 	//DB
 	chainDb youdb.Database
 
+	voteDb youdb.Database
+
 	accountManager *accounts.Manager
 
 	BloomRequests chan chan *bloombits.Retrieval // Channel receiving bloom data retrieval requests
@@ -120,6 +122,7 @@ func New(config *Config, nodeConfig *node.Config) (*YouChain, error) {
 		nodeConfig:    nodeConfig,
 		quit:          make(chan bool),
 		chainDb:       chainDb,
+		voteDb:        voteDb,
 		engine:        engine,
 		eventMux:      eventMux,
 		BloomRequests: make(chan chan *bloombits.Retrieval),
@@ -362,6 +365,7 @@ func (you *YouChain) Stop() error {
 	you.eventMux.Stop()
 
 	you.chainDb.Close()
+	you.voteDb.Close()
 	you.stakingMan.Stop()
 
 	close(you.quit)

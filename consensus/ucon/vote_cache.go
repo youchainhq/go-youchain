@@ -90,10 +90,7 @@ func NewVoteDB(db youdb.Database, rawSk *ecdsa.PrivateKey) *VoteDB {
 }
 
 func (v *VoteDB) Stop() {
-	v.lock.Lock()
-	defer v.lock.Unlock()
 
-	v.db.Close()
 }
 
 func (v *VoteDB) UpdateContext(round *big.Int, roundIndex uint32) {
