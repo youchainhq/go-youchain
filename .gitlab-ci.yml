@@ -1,0 +1,31 @@
+stages:
+- build
+- deploy
+- test
+
+before_script:
+- id
+- echo $GOPATH
+- pwd
+
+build_image:
+  stage: build
+  tags:
+  - r2
+  script:
+    - cd build/k8s-network-ci/ &&  make all
+    - echo "build image success!!!"
+
+deploy2k8s:
+  stage: deploy
+  tags:
+  - r2
+  script:
+    - cd build/k8s-network-ci/ && sh ci.sh deploy
+
+testChain:
+  stage: test
+  tags:
+  - r2
+  script:
+    - cd build/k8s-network-ci/ && sh ci.sh test

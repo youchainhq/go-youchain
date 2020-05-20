@@ -1,0 +1,88 @@
+[
+  {
+    "uconkey": "36b1dbd15620072c3c42c769c999d541e77c98d3ccff83312c77868421b608be",
+    "uconvalidator": 1,
+    "stake": 1580000000000000000000000,
+    "coinbase": "0x8E036959E057F0df5FFa0211A2548194C6Cb08FF",
+    "blssignkey": "47efd8b75d7528e16d9a5b33fcb58480620bf2522c09608e885c0a31b5e73588"
+  },
+  {
+    "uconkey": "e23522540e06fbbb8097fc028fc8ccbc04e00bbe6fcab3a810ff5733ae23a4de",
+    "uconvalidator": 1,
+    "stake": 1580000000000000000000000,
+    "coinbase": "0x93e8cCBF6383Ce4186d8f1F25a9429Ce6Aecc954",
+    "blssignkey": "468035227b45575df06ec86c91ad89bd36e76db8fe41559621a45f42badf4cbe"
+  },
+  {
+    "uconkey": "eeb3182acccfbccbf0df97d645058f0e386a7aff01198420434da253ac202ed6",
+    "uconvalidator": 1,
+    "stake": 1580000000000000000000000,
+    "coinbase": "0xFc417779C6805A80Fe8e788335ffD9F326AA5893",
+    "blssignkey": "47a9bde779a79dbd9e1a886e0ac2ae75c7c980ad68d83c10681648b7c8c7f91a"
+  },
+  {
+    "uconkey": "4d6f70275ee80873ef0f6613ba7fc9ae4236e56fed9aa46186ddcf25e2233ae8",
+    "uconvalidator": 1,
+    "stake": 1580000000000000000000000,
+    "coinbase": "0xbe635E5a8D2552160c26221ADC1c8A58730E388B",
+    "blssignkey": "61147521627b854e9987ea50c026a1110f22dd874e68efb4744c4ad319c75bf7"
+  },
+  {
+    "uconkey": "864a4c98b27aabc2e4db53797b8859555d097389e1d2c476944b374474619a16",
+    "uconvalidator": 1,
+    "stake": 1580000000000000000000000,
+    "coinbase": "0xE4926b924960eEEF6801C3C9dE7470e7dE7ab49F",
+    "blssignkey": "31fdf80c852cc89bafaf3400057e9bdda72991434e8ab7906f25002835f46a48"
+  },
+  {
+    "uconkey": "620d754f003adc7369114f113d625169b16ca3ff44ffedd84cc3c30b856b6556",
+    "uconvalidator": 1,
+    "stake": 1580000000000000000000000,
+    "coinbase": "0x0F63534D9816f7324267fC853b3B0AC7A7022196",
+    "blssignkey": "45609e567c69febd414245e192b36c59a86d7b6d2487f25d5c63a903c20b5be8"
+  },
+  {
+    "uconkey": "062eac9858e3a999fd57984afefb27bc29302c00a23441e10b8f5fbe0bd2dce5",
+    "uconvalidator": 1,
+    "stake": 1580000000000000000000000,
+    "coinbase": "0xCCc6936E6FcbEdF2Db1bECf46399E0E153dd189c",
+    "blssignkey": "513b344ab47abcd999a8a74ae8c4035e1dbb925bb92f6adf9d5ad60dd69c29e6"
+  },
+  {
+    "uconkey": "de2b14e2f7f5c71a5831ec75db75bea53a2190de550e7522ac5cf59e841cab91",
+    "uconvalidator": 1,
+    "stake": 1580000000000000000000000,
+    "coinbase": "0x5A2E9C176F57C5d37bB1D6864f3662dCa6E699d3",
+    "blssignkey": "079af920354fd4108180675540a52961827780060ba3bd2a3b018ddf5779c730"
+  },
+  {
+    "uconkey": "242fdcc1e642cc454f777295bb2fded6c7b7237f6006ff41638cd0e25dd3d32a",
+    "uconvalidator": 1,
+    "stake": 1580000000000000000000000,
+    "coinbase": "0x843a9B823cDfB2B6D82cf59B90a7C13885c2ff97",
+    "blssignkey": "18b64e68a2f30920ee791adcd69db428e72a3f6870f9aa2283ac148db3bebee2"
+  },
+  {
+    "uconkey": "3213b02b1c769fc282b3bac4a6f4150c0dbf4cd38dfe8041280346fb144a367f",
+    "uconvalidator": 1,
+    "stake": 1580000000000000000000000,
+    "coinbase": "0x47fcF5C421eF8e5d14b43B6a127c82f285292c83",
+    "blssignkey": "331a5c7890b6e81471aec6a44a334e10fb51f2e1c840c32a57efe81be0afc655"
+  },
+  {
+    "uconkey": "4f8559f0608940bce8fbcda86bd2f8a1dfdc8b4d01dc5a2fed8e9bb9b26142e0",
+    "uconvalidator": 1,
+    "stake": 694000,
+    "coinbase": "0x02cA225eda0EB7deDc294F531Ae750951BfbfBB0",
+    "blssignkey": "3b6f469a9e155f626779fd6e0f93dc37fd5cc73945467ead2c23e6c6aa38c9ee",
+    "comment": "validator will be created in citest"
+  },
+  {
+    "uconkey": "bd85dc87f1f5d18debd357e4978813d214cbfaed3f042305f9ad993c344f89d8",
+    "uconvalidator": 1,
+    "stake": 511000,
+    "coinbase": "0x3562cbf135f6aF199A18d88419989df278bEbD80",
+    "blssignkey": "4e8258bc7835e4d2b9dbbe5f9be94a2e2991197b55241c628d84ceac32ca1c67",
+    "comment": "validator will be created in citest"
+  }
+]

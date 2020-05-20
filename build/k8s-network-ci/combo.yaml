@@ -1,0 +1,153 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: bootnode-{ci_identify_app_name_version}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bootnode-{ci_identify_app_name_version}
+  template:
+    metadata:
+      labels:
+        app: bootnode-{ci_identify_app_name_version}
+    spec:
+      imagePullSecrets:
+        - name: aliyun-secret
+      containers:
+        - name: bootnode-{ci_identify_app_name_version}
+          image: 'registry.cn-hangzhou.aliyuncs.com/maisi/youchain-bootnode-ci:latest'
+          imagePullPolicy: Always
+          command:
+            - /bin/bootnode-linux-amd64
+          args:
+            - '-nodekeyhex'
+            - 'ce7f44b1795b34a4966092a85023661a4a953961fb55d00caee36cf2891f6e25'
+          ports:
+            - containerPort: 9284
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: bootnode-{ci_identify_app_name_version}-svc
+  labels:
+    name: bootnode-{ci_identify_app_name_version}-svc
+spec:
+  ports:
+    - protocol: UDP
+      port: 9284
+      targetPort: 9284
+  selector:
+    app: bootnode-{ci_identify_app_name_version}
+---
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: youchain-{ci_identify_app_name_version}
+spec:
+  serviceName: "youchain-{ci_identify_app_name_version}"
+  podManagementPolicy: "Parallel"
+  replicas: 12
+  template:
+    metadata:
+      labels:
+        app: youchain-{ci_identify_app_name_version}
+    spec:
+      serviceAccount: nfs-client-provisioner
+      imagePullSecrets:
+        - name: aliyun-secret
+      containers:
+        - image: registry.cn-hangzhou.aliyuncs.com/maisi/{ci_identify_app_image_version}
+          name: youchain-{ci_identify_app_name_version}
+          ports:
+            - name: http-rpc
+              containerPort: 8283
+            - name: ws-rpc
+              containerPort: 8284
+            - name: p2p-rudp
+              containerPort: 9283
+            - name: p2p-discover
+              containerPort: 9284
+            - name: pprof-port
+              containerPort: 7283
+          args:
+            - '-mine'
+            - '-rpc.host'
+            - '0.0.0.0'
+            - '-rpc.port'
+            - '8283'
+            - '-rpc.api'
+            - 'net,you,dev'
+            - '-rpc.wshost'
+            - '0.0.0.0'
+            - '-log.level'
+            - '5'
+            - '-genesis'
+            - '/bin/genesis.json'
+            - '-bootuconfile'
+            - '/bin/ucon.json'
+            - '-bootnodesvcname'
+            - 'bootnode-{ci_identify_app_name_version}-svc'
+            - '-nat.type'
+            - 'Full'
+            - '-p2p.bootnode'
+            - 'enode://e913d749369090d9e425f2535fe17b9ef1c713616b7f3214be1b08daf7e8195e707531f6a11e19da6c13a22b04e915020c6511be5137bfe438bc92d529d20bed@{ip}:9283?discport=9284&nat=1&nodetype=1'
+          command:
+            - /bin/you-linux-amd64
+          imagePullPolicy: Always
+      initContainers:
+        - name: init-bootnode
+          image: busybox:1.28.3
+          command: ['sh', '-c', 'until nslookup bootnode-{ci_identify_app_name_version}-svc; do echo waiting for bootnode-{ci_identify_app_name_version}-svc; sleep 2; done;']
+---
+#youchain headless services
+apiVersion: v1
+kind: Service
+metadata:
+  name: youchain-{ci_identify_app_name_version}
+  labels:
+    app: youchain-{ci_identify_app_name_version}
+spec:
+  ports:
+    - port: 8283
+  clusterIP: None
+  selector:
+    app: youchain-{ci_identify_app_name_version}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {ci_identify_job_name}
+spec:
+  template:
+    metadata:
+      labels:
+        app: {ci_identify_job_name}
+    spec:
+      imagePullSecrets:
+        - name: aliyun-secret
+      containers:
+        - name: {ci_identify_job_name}
+          image: registry.cn-hangzhou.aliyuncs.com/maisi/yctest:0.7.5
+          command: ["/bin/yctest-linux-amd64"]
+          imagePullPolicy: Always
+          args:
+            - '-label'
+            - 'app=youchain-{ci_identify_app_name_version}'
+            - '-wsport'
+            - '8284'
+            - '-minnode'
+            - '12'
+            - '-maxnode'
+            - '12'
+            - '-conf'
+            - 'conf0.json'
+            - '-branch'
+            - '{branch}'
+            - '-commit'
+            - '{commit}'
+            - '-timeci'
+            - '{timeci}'
+            - '-smart'
+      restartPolicy: Never
+  backoffLimit: 0
