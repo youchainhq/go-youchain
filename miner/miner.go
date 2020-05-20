@@ -24,6 +24,7 @@ import (
 	"github.com/youchainhq/go-youchain/core/state"
 	"github.com/youchainhq/go-youchain/core/types"
 	"github.com/youchainhq/go-youchain/event"
+	"github.com/youchainhq/go-youchain/logging"
 	"github.com/youchainhq/go-youchain/node"
 	"github.com/youchainhq/go-youchain/params"
 	"github.com/youchainhq/go-youchain/you/downloader"
@@ -72,6 +73,7 @@ func (m *Miner) update() {
 		select {
 		case ev := <-events.Chan():
 			if ev == nil {
+				logging.Info("events.Chan quit")
 				return
 			}
 			switch ev.Data.(type) {
@@ -79,8 +81,9 @@ func (m *Miner) update() {
 				log.Info("miner recv StartEvent")
 				atomic.StoreInt32(&m.canStart, 0)
 				if m.worker.isRunning() {
-					if err := m.engine.Stop(); err != nil {
-						log.Error("stop consensus engine", " error", err)
+					log.Error("miner stop consensus engine")
+					if err := m.engine.Pause(); err != nil {
+						log.Error("miner pause consensus engine", "error", err)
 					}
 
 					m.Stop()
@@ -94,8 +97,10 @@ func (m *Miner) update() {
 				atomic.StoreInt32(&m.canStart, 1)
 				atomic.StoreInt32(&m.shouldStart, 0)
 				if shouldStart {
-					if err := m.engine.Restart(); err != nil {
-						log.Error("restart consensus engine", " error", err)
+
+					log.Info("miner restart consensus engine")
+					if err := m.engine.Resume(); err != nil {
+						log.Error("miner resume consensus engine", "error", err)
 					}
 
 					m.Start()
