@@ -126,11 +126,12 @@ type Engine interface {
 	//StartMining starts the engine for mining
 	StartMining(chain ChainReader, inserter MineInserter, eventMux *event.TypeMux) error
 
-	//restart assuming context is ready
-	Restart() error
-
 	// Stop the engine
 	Stop() error
+
+	Pause() error
+
+	Resume() error
 }
 
 type Ucon interface {

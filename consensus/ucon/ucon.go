@@ -214,7 +214,39 @@ func (s *Server) StartMining(chain consensus.ChainReader, inserter consensus.Min
 	return nil
 }
 
-func (s *Server) Restart() error {
+// Stop the engine
+func (s *Server) Stop() error {
+	if !atomic.CompareAndSwapInt32(&s.alreadyStarted, 1, 0) {
+		logging.Error("Ucon already Stop")
+		return nil
+	}
+	logging.Info("Ucon Stop")
+
+	close(s.quitChan) // <- true
+
+	s.timer.Stop()
+	s.proposal.Stop()
+	s.voter.Stop()
+	s.msgHandler.Stop()
+
+	s.eventSub.Unsubscribe() // quits eventLoop
+	return nil
+}
+
+func (s *Server) Pause() error {
+	if !atomic.CompareAndSwapInt32(&s.alreadyStarted, 1, 0) {
+		logging.Error("Ucon already Stop")
+		return nil
+	}
+
+	s.timer.Pause()
+
+	logging.Info("consensus pause succeed")
+	return nil
+}
+
+func (s *Server) Resume() error {
+	logging.Info("try to resume")
 	if s.rawSk == nil {
 		return consensus.ErrValKeyNotSet
 	}
@@ -228,40 +260,14 @@ func (s *Server) Restart() error {
 		return nil
 	}
 
-	s.quitChan = make(chan bool, 1)
-
 	err := s.StartNewRound(true)
 	if err != nil {
+		logging.Info("start new round error")
 		return err
 	}
 
-	s.eventSub = s.eventMux.Subscribe(core.InsertBlockEvent{}, CommitEvent{}, RoundIndexChangeEvent{}, UpdateExistedHeaderEvent{}) //, ReceivedMsgEvent{})
-	go s.eventLoop()
-
-	s.msgHandler.Start()
-	s.proposal.Start()
-	s.voter.Start(s)
-	s.timer.Start()
-
 	atomic.StoreInt32(&s.alreadyStarted, 1)
-	return nil
-}
-
-// Stop the engine
-func (s *Server) Stop() error {
-	if !atomic.CompareAndSwapInt32(&s.alreadyStarted, 1, 0) {
-		return nil
-	}
-	logging.Info("Ucon Stop")
-
-	close(s.quitChan) // <- true
-
-	s.timer.Stop()
-	s.proposal.Stop()
-	s.voter.Stop()
-	s.msgHandler.Stop()
-
-	s.eventSub.Unsubscribe() // quits eventLoop
+	logging.Info("consensus resume succeed")
 	return nil
 }
 
@@ -551,8 +557,11 @@ func (s *Server) updateBlockHeader(ev UpdateExistedHeaderEvent) {
 //HandleMsg handles related consensus messages or
 // fallback to default procotol manager's handler
 func (s *Server) HandleMsg(data []byte, receivedAt time.Time) error {
-	err := s.msgHandler.HandleMsg(data, receivedAt)
-	return err
+	if s.isMining() {
+		err := s.msgHandler.HandleMsg(data, receivedAt)
+		return err
+	}
+	return nil
 }
 
 func (s *Server) processTimeout(round *big.Int, roundIndex uint32) {
