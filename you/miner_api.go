@@ -36,8 +36,8 @@ func (api *PrivateMinerApi) Start() error {
 	return api.c.StartMining()
 }
 
-func (api *PrivateMinerApi) Stop() {
-	api.c.miner.Stop()
+func (api *PrivateMinerApi) Stop() error {
+	return api.c.StopMining()
 }
 
 // Mining returns an indication if this node is currently mining.

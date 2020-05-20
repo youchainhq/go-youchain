@@ -281,6 +281,18 @@ func (tm *TimerManager) Stop() {
 	close(tm.quitChan)
 }
 
+func (tm *TimerManager) Pause() {
+	tm.lock.Lock()
+	defer tm.lock.Unlock()
+
+	if tm.timeoutTimer != nil {
+		tm.timeoutTimer.Stop()
+	}
+	if tm.stepTimer != nil {
+		tm.stepTimer.Stop()
+	}
+}
+
 func (tm *TimerManager) NewAddressMsg(ev ReceivedMsgEvent, validatorKind params.ValidatorKind, chamberNum, houseNum uint64) bool {
 	tm.lock.Lock()
 	defer tm.lock.Unlock()

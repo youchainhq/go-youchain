@@ -217,6 +217,7 @@ func (s *Server) StartMining(chain consensus.ChainReader, inserter consensus.Min
 // Stop the engine
 func (s *Server) Stop() error {
 	if !atomic.CompareAndSwapInt32(&s.alreadyStarted, 1, 0) {
+		logging.Error("Ucon already Stop")
 		return nil
 	}
 	logging.Info("Ucon Stop")
@@ -229,6 +230,44 @@ func (s *Server) Stop() error {
 	s.msgHandler.Stop()
 
 	s.eventSub.Unsubscribe() // quits eventLoop
+	return nil
+}
+
+func (s *Server) Pause() error {
+	if !atomic.CompareAndSwapInt32(&s.alreadyStarted, 1, 0) {
+		logging.Error("Ucon already Stop")
+		return nil
+	}
+
+	s.timer.Pause()
+
+	logging.Info("consensus pause succeed")
+	return nil
+}
+
+func (s *Server) Resume() error {
+	logging.Info("try to resume")
+	if s.rawSk == nil {
+		return consensus.ErrValKeyNotSet
+	}
+	if s.blsSk == nil {
+		return consensus.ErrBlsKeyNotSet
+	}
+	s.startMiningLock.Lock()
+	defer s.startMiningLock.Unlock()
+	if s.isMining() {
+		logging.Info("Ucon Already Started")
+		return nil
+	}
+
+	err := s.StartNewRound(true)
+	if err != nil {
+		logging.Info("start new round error")
+		return err
+	}
+
+	atomic.StoreInt32(&s.alreadyStarted, 1)
+	logging.Info("consensus resume succeed")
 	return nil
 }
 
@@ -518,8 +557,11 @@ func (s *Server) updateBlockHeader(ev UpdateExistedHeaderEvent) {
 //HandleMsg handles related consensus messages or
 // fallback to default procotol manager's handler
 func (s *Server) HandleMsg(data []byte, receivedAt time.Time) error {
-	err := s.msgHandler.HandleMsg(data, receivedAt)
-	return err
+	if s.isMining() {
+		err := s.msgHandler.HandleMsg(data, receivedAt)
+		return err
+	}
+	return nil
 }
 
 func (s *Server) processTimeout(round *big.Int, roundIndex uint32) {

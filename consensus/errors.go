@@ -27,6 +27,9 @@ var (
 	// that is known, but the state of which is not available.
 	ErrPrunedAncestor = errors.New("pruned ancestor")
 
+	//new block should not older than parent
+	ErrOlderBlockTime    = errors.New("timestamp older than parent")
+
 	// ErrFutureBlock is returned when a block's timestamp is in the future according
 	// to the current node.
 	ErrFutureBlock = errors.New("block in the future")
