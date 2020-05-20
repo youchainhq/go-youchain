@@ -79,6 +79,10 @@ func (m *Miner) update() {
 				log.Info("miner recv StartEvent")
 				atomic.StoreInt32(&m.canStart, 0)
 				if m.worker.isRunning() {
+					if err := m.engine.Stop(); err != nil {
+						log.Error("stop consensus engine", " error", err)
+					}
+
 					m.Stop()
 					atomic.StoreInt32(&m.shouldStart, 1)
 					log.Info("mining aborted due to sync")
@@ -90,10 +94,12 @@ func (m *Miner) update() {
 				atomic.StoreInt32(&m.canStart, 1)
 				atomic.StoreInt32(&m.shouldStart, 0)
 				if shouldStart {
+					if err := m.engine.Restart(); err != nil {
+						log.Error("restart consensus engine", " error", err)
+					}
+
 					m.Start()
 				}
-				// stop immediately and ignore all further pending events
-				return
 			}
 		case <-m.quit:
 			return

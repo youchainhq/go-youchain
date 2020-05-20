@@ -342,6 +342,16 @@ func (you *YouChain) StartMining() error {
 	return nil
 }
 
+func (you *YouChain) StopMining() error {
+	err := you.engine.Stop()
+	if err != nil {
+		logging.Error("stop mining", "err", err)
+	}
+
+	you.miner.Stop()
+	return nil
+}
+
 func (you *YouChain) Stop() error {
 	you.blockChain.Stop()
 
