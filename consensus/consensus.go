@@ -128,6 +128,10 @@ type Engine interface {
 
 	// Stop the engine
 	Stop() error
+
+	Pause() error
+
+	Resume() error
 }
 
 type Ucon interface {
