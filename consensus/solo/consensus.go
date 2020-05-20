@@ -176,7 +176,11 @@ func (s *Solo) StartMining(chain consensus.ChainReader, inserter consensus.MineI
 	return nil
 }
 
-func (s *Solo) Restart() error {
+func (s *Solo) Pause() error {
+	return nil
+}
+
+func (s *Solo) Resume() error {
 	return nil
 }
 

@@ -270,7 +270,7 @@ func (w *worker) commitNewWork(interrupt *int32) {
 
 	//quick fast
 	if !w.isRunning() {
-		log.Info("worker is not running")
+		log.Warn("worker is not running")
 		return
 	}
 
@@ -279,6 +279,12 @@ func (w *worker) commitNewWork(interrupt *int32) {
 	coinbase.SetBytes(w.engine.GetValMainAddress().Bytes())
 
 	parent := w.chain.CurrentBlock()
+
+	if uint64(time.Now().Unix()) <= parent.Time() {
+		log.Warn("local time is far behind")
+		return
+	}
+
 	num := parent.Number()
 	header := &types.Header{
 		ParentHash: parent.Hash(),
