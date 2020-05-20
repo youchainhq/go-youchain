@@ -176,6 +176,14 @@ func (s *Solo) StartMining(chain consensus.ChainReader, inserter consensus.MineI
 	return nil
 }
 
+func (s *Solo) Pause() error {
+	return nil
+}
+
+func (s *Solo) Resume() error {
+	return nil
+}
+
 func (s *Solo) Stop() error {
 	//do nothing
 	return nil

@@ -209,9 +209,10 @@ type VoteBLSMgr struct {
 
 func NewVoteBLSMgr(rawSk *ecdsa.PrivateKey, blsSk bls.SecretKey) *VoteBLSMgr {
 	vb := &VoteBLSMgr{
-		rawSk:  rawSk,
-		blsSk:  blsSk,
-		blsMgr: bls.NewBlsManager(),
+		rawSk:     rawSk,
+		blsSk:     blsSk,
+		blsMgr:    bls.NewBlsManager(),
+		currRound: new(big.Int),
 	}
 	vb.Verifier = NewBlsVerifier(vb.blsMgr)
 	if nil != rawSk {
