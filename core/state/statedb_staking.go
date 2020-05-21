@@ -205,6 +205,11 @@ func (st *StateDB) updateStakingTrie() error {
 }
 
 func (st *StateDB) ForEachStakingRecord(cb func(d, v common.Address, record *Record) error) error {
+	if len(st.stakingRecordsDirty) > 0 {
+		if err := st.updateStakingTrie(); err != nil {
+			return err
+		}
+	}
 	it := trie.NewIterator(st.stakingTrie.NodeIterator(nil))
 	for it.Next() {
 		key := st.stakingTrie.GetKey(it.Key)
