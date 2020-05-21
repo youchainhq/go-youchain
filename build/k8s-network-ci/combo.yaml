@@ -128,7 +128,7 @@ spec:
         - name: aliyun-secret
       containers:
         - name: {ci_identify_job_name}
-          image: registry.cn-hangzhou.aliyuncs.com/maisi/yctest:0.7.5
+          image: registry.cn-hangzhou.aliyuncs.com/maisi/yctest:0.7.6
           command: ["/bin/yctest-linux-amd64"]
           imagePullPolicy: Always
           args:

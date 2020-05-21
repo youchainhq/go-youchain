@@ -76,7 +76,7 @@ type Processor interface {
 	ApplyMessageEntry(msg Message, statedb *state.StateDB, bc ChainContext, header *types.Header, author *common.Address, gp *GasPool, cfg *vm.Config) ([]byte, uint64, bool, error)
 
 	// EndBlock executes some extended logic registered by other modules
-	EndBlock(chain vm.ChainReader, header *types.Header, state *state.StateDB, isSeal bool) ([]*types.Receipt, [][]byte, []error)
+	EndBlock(chain vm.ChainReader, header *types.Header, txs []*types.Transaction, state *state.StateDB, isSeal bool) ([]*types.Receipt, [][]byte, []error)
 }
 
 // IRouter is an interface for routing a transaction to a state converter.

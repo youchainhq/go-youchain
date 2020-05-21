@@ -173,7 +173,7 @@ func generateChain(parent *types.Block, engine consensus.Engine, db youdb.Databa
 		}
 		if b.engine != nil {
 			if b.processor != nil {
-				receipts, _, _ := b.processor.EndBlock(chainreader, b.header, statedb, true)
+				receipts, _, _ := b.processor.EndBlock(chainreader, b.header, b.txs, statedb, true)
 				for _, receipt := range receipts {
 					if receipt != nil {
 						b.receipts = append(b.receipts, receipt)
