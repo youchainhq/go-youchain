@@ -222,11 +222,11 @@ func testNetProtocols() VersionsMap {
 				RoleHouse:      4,
 			},
 
-			MaxRewardsPeriod:     128,
+			MaxRewardsPeriod:     10,
 			MaxEvidenceExpiredIn: 120,
 
-			WithdrawDelay:           192,
-			WithdrawRecordRetention: 1024,
+			WithdrawDelay:           20,
+			WithdrawRecordRetention: 24,
 
 			ExpelledRoundForDoubleSign: 512,
 			ExpelledRoundForInactive:   128,
@@ -235,9 +235,9 @@ func testNetProtocols() VersionsMap {
 			PenaltyFractionForDoubleSign: 2,
 			PenaltyFractionForInactive:   1,
 
-			StakingTrieFrequency:      128,
-			MaxDelegationForValidator: 2000,
-			MaxDelegationForDelegator: 128,
+			StakingTrieFrequency:      8,
+			MaxDelegationForValidator: 20,
+			MaxDelegationForDelegator: 20,
 			MinDelegationTokens:       new(big.Int).Mul(big.NewInt(10), StakeUint),
 
 			MasterAddress: common.HexToAddress("0x35049C793fd29605CdDcFc896620A4522b6f7496"),
