@@ -226,7 +226,7 @@ func testNetProtocols() VersionsMap {
 			MaxEvidenceExpiredIn: 120,
 
 			WithdrawDelay:           20,
-			WithdrawRecordRetention: 24,
+			WithdrawRecordRetention: 100,
 
 			ExpelledRoundForDoubleSign: 512,
 			ExpelledRoundForInactive:   128,
