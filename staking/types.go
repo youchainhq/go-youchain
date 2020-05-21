@@ -40,6 +40,7 @@ type engine interface {
 // DelegateActionType is the type of delegate action
 type ActionType uint8
 
+// split actions to groups
 const (
 	ValidatorCreate ActionType = 0x1 + iota
 	ValidatorUpdate
@@ -47,7 +48,9 @@ const (
 	ValidatorWithDraw
 	ValidatorChangeStatus
 	ValidatorSettle
+)
 
+const (
 	DelegationAdd    ActionType = 0x10 + iota // add delegation
 	DelegationSub                             // subtract delegation
 	DelegationSettle                          // settle delegation rewards
