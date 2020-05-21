@@ -118,7 +118,7 @@ func (st *StateDB) AddStakingRecord(d, v common.Address, txHash common.Hash, new
 	if txHash != (common.Hash{}) {
 		sr.record.TxHashes = append(sr.record.TxHashes, txHash)
 	}
-
+	logging.Debug("AddStakingRecord", "key", hexutil.Encode(key[:]))
 	st.stakingRecordsDirty[*key] = struct{}{}
 }
 
@@ -218,6 +218,7 @@ func (st *StateDB) ForEachStakingRecord(cb func(d, v common.Address, record *Rec
 		if len(key) != biAddressLen {
 			continue
 		}
+		logging.Debug("iterate record", "key", hexutil.Encode(key[:]))
 		d, v := common.BytesToAddress(key[:common.AddressLength]), common.BytesToAddress(key[common.AddressLength:])
 		var data Record
 		if err := rlp.DecodeBytes(it.Value, &data); err != nil {
