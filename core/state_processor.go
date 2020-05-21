@@ -40,7 +40,7 @@ var (
 
 var _ Processor = &StateProcessor{}
 
-type BlockHookFn func(chain vm.ChainReader, header *types.Header, state *state.StateDB, seal bool) (*types.Receipt, []byte, error)
+type BlockHookFn func(chain vm.ChainReader, header *types.Header, txs []*types.Transaction, state *state.StateDB, seal bool) (*types.Receipt, []byte, error)
 type hookFunc struct {
 	Name string
 	Run  BlockHookFn
@@ -101,7 +101,7 @@ func (p *StateProcessor) Process(yp *params.YouParams, block *types.Block, state
 
 	logging.Info("process block", "number", header.Number, "txs", block.Transactions().Len(), "usedGas", usedGas, "hUsedGas", header.GasUsed, "gasRewards", gasRewards, "hGasRewards", header.GasRewards)
 
-	extendReceipts, _, _ := p.EndBlock(p.bc, block.Header(), statedb, false)
+	extendReceipts, _, _ := p.EndBlock(p.bc, header, block.Transactions(), statedb, false)
 	for _, receipt := range extendReceipts {
 		if receipt != nil {
 			receipts = append(receipts, receipt)
@@ -243,7 +243,7 @@ func (p *StateProcessor) AddEndBlockHook(name string, fn BlockHookFn) {
 	p.endBlockHooks = append(p.endBlockHooks, hookFunc{Name: name, Run: fn})
 }
 
-func (p *StateProcessor) EndBlock(chain vm.ChainReader, header *types.Header, state *state.StateDB, isSeal bool) ([]*types.Receipt, [][]byte, []error) {
+func (p *StateProcessor) EndBlock(chain vm.ChainReader, header *types.Header, txs []*types.Transaction, state *state.StateDB, isSeal bool) ([]*types.Receipt, [][]byte, []error) {
 	count := len(p.endBlockHooks)
 	if count == 0 {
 		return nil, nil, nil
@@ -252,7 +252,7 @@ func (p *StateProcessor) EndBlock(chain vm.ChainReader, header *types.Header, st
 	var errs = make([]error, count)
 	var recs = make([]*types.Receipt, count)
 	for i, hook := range p.endBlockHooks {
-		recs[i], data[i], errs[i] = hook.Run(chain, header, state, isSeal)
+		recs[i], data[i], errs[i] = hook.Run(chain, header, txs, state, isSeal)
 	}
 	logging.Info("after end block", "header", header.Number, "slashdata", hexutil.Encode(header.SlashData), "gasUsed", header.GasUsed, "gasRewards", header.GasRewards, "subsidy", header.Subsidy, "isSeal", isSeal)
 	return recs, data, errs

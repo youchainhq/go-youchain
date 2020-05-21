@@ -39,7 +39,7 @@ type tempRewardsRecord struct {
 
 //EndBlock process slashing and rewarding for block
 func EndBlock(staking *Staking) core.BlockHookFn {
-	return func(chain vm.ChainReader, header *types.Header, db *state.StateDB, isSeal bool) (*types.Receipt, []byte, error) {
+	return func(chain vm.ChainReader, header *types.Header, txs []*types.Transaction, db *state.StateDB, isSeal bool) (*types.Receipt, []byte, error) {
 		if header == nil {
 			return nil, nil, errHeaderRequired
 		}
@@ -80,7 +80,7 @@ func EndBlock(staking *Staking) core.BlockHookFn {
 		rewardsToPool(currConfig, db, header, receipt)
 
 		// process the staking business on the end of a period
-		if err = staking.endStakingPeriod(currConfig, db, header, receipt); err != nil {
+		if err = staking.endStakingPeriod(currConfig, db, header, txs, receipt); err != nil {
 			log.Error("endStakingPeriod failed", "height", header.Number, "err", err)
 		}
 
@@ -159,7 +159,7 @@ func rewardsToPool(config *params.YouParams, db *state.StateDB, header *types.He
 	initStat.GetByKind(params.KindValidator).SetRewardsResidue(residue)
 }
 
-func (s *Staking) endStakingPeriod(config *params.YouParams, db *state.StateDB, header *types.Header, receipt *types.Receipt) (err error) {
+func (s *Staking) endStakingPeriod(config *params.YouParams, db *state.StateDB, header *types.Header, txs []*types.Transaction, receipt *types.Receipt) (err error) {
 	blockNumber := header.Number.Uint64()
 	if (blockNumber+1)%config.StakingTrieFrequency != 0 {
 		// not the end of a staking period
@@ -176,7 +176,7 @@ func (s *Staking) endStakingPeriod(config *params.YouParams, db *state.StateDB, 
 	processWithdrawQueue(config, db, header, receipt)
 
 	// make all pending staking transactions of current period to take effects.
-	err = processPendingTxs(config, db, header, receipt, settled)
+	err = processPendingTxs(config, db, header, txs, receipt, settled)
 
 	return err
 }
@@ -289,7 +289,7 @@ func (s *Staking) distributeRewards(config *params.YouParams, db *state.StateDB,
 	return settled, nil
 }
 
-func processPendingTxs(config *params.YouParams, db *state.StateDB, header *types.Header, receipt *types.Receipt, forceSettled map[common.Address]struct{}) error {
+func processPendingTxs(config *params.YouParams, db *state.StateDB, header *types.Header, txs []*types.Transaction, receipt *types.Receipt, forceSettled map[common.Address]struct{}) error {
 	// cache validator address who's rewards has been fully settled
 	rewardsSettled := forceSettled
 
@@ -311,8 +311,17 @@ func processPendingTxs(config *params.YouParams, db *state.StateDB, header *type
 		for _, txHash := range record.TxHashes {
 			tx, _, _, _ := rawdb.ReadTransaction(diskDb, txHash)
 			if tx == nil {
-				logging.Error("SHOULD NOT HAPPEN. tx not exist", "txHash", txHash.String())
-				continue
+				for _, t := range txs {
+					if t.Hash() == txHash {
+						tx = t
+						logging.Debug("a current block transaction", "txHash", txHash.String())
+						break
+					}
+				}
+				if tx == nil {
+					logging.Error("SHOULD NOT HAPPEN. tx not exist", "txHash", txHash.String())
+					return fmt.Errorf("tx not exist, txHash=%s", txHash.String())
+				}
 			}
 			msg, _ := tx.AsMessage(signer)
 			ctx := &messageContext{
