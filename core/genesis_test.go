@@ -299,7 +299,7 @@ func TestDefaultGenesisBlock(t *testing.T) {
 	require.Greater(t, len(g.Validators), 0)
 	db := youdb.NewMemDatabase()
 	b := g.ToBlock(db)
-	gh := common.HexToHash("0xa8fdcf4a6b91c0e5937309c812bc77f38ff4ae16294c24ae0c654f5b6fdaeeeb")
+	gh := common.HexToHash("0xce0efc6c8bd2195b53bf9cce7e7fff3bfc8aeba19b1f314ab029da68a521acf6")
 	if b.Hash() != gh {
 		t.Fatal("DefaultGenesisBlock hash mismatch")
 	}

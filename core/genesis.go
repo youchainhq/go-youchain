@@ -343,7 +343,7 @@ func DefaultGenesisBlock() *Genesis {
 	return &Genesis{
 		NetworkId:   params.MainNetId,
 		Consensus:   hexutil.MustDecode("0xf84e8001a05d93025288dddb431e3f43e07c63d1a96a28bf033457c74ee3f4d8eed88d3cf601a0010000000000000000000000000000000000000000000000000000000000000001801a8207d0820fa0"),
-		GasLimit:    8888888,
+		GasLimit:    0x888888,
 		Alloc:       decodePrealloc(mainnetAllocData),
 		Validators:  decodeValidators(mainnetValidatorsData),
 		CurrVersion: params.YouV1,
