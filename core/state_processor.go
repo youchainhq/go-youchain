@@ -217,7 +217,10 @@ func (p *StateProcessor) ApplyMessageEntry(msg Message, statedb *state.StateDB,
 	}
 
 	// Finally, call the ApplyMessage for specific handle.
-	return c.ApplyMessage(msgCtx)
+	ret, gasUsed, failed, err := c.ApplyMessage(msgCtx)
+	//refund gas
+	msgCtx.refundGas()
+	return ret, gasUsed, failed, err
 }
 
 // AddTxConverter adds a transaction converter for a given model address.
