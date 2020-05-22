@@ -326,7 +326,7 @@ func (w *worker) commitNewWork(interrupt *int32) {
 		return
 	}
 
-	res, _, _ := w.processor.EndBlock(w.chain, w.current.header, w.current.state, true)
+	res, _, _ := w.processor.EndBlock(w.chain, w.current.header, w.current.txs, w.current.state, true)
 	for _, receipt := range res {
 		if receipt != nil {
 			w.current.receipts = append(w.current.receipts, res...)
