@@ -92,6 +92,8 @@ func mainNetProtocols() VersionsMap {
 			SeedLookBack:          8,
 			EnableBls:             true,
 			EnableInactivity:      false,
+
+			AllowedFutureBlockTime: 15 * time.Second,
 		},
 		StakingParams: StakingParams{
 			RewardsPoolAddress: common.BigToAddress(big.NewInt(0x0000000000000000000000000000001111111111)),
@@ -150,23 +152,19 @@ func mainNetProtocols() VersionsMap {
 		MaxUpgradeWaitRounds: 15000,
 	}
 
+	// v1 can updates to v2
+	v2 := v1.DeepCopy() // copy first
+	// then update v1
+	v1.ApprovedUpgradeVersion = YouV2
+	// update the map value.
+	// then the previous `versionMap[v1.Version] = v1` can be deleted
 	versionMap[v1.Version] = v1
 
-	// when a new version need to be upgrade, the basic setting should be as follow:
-	/*
-		v2 := v1.DeepCopy() // copy first
-		// then update v1
-		v1.ApprovedUpgradeVersion = YouV2
-		// update the map value.
-		// then the previous `versionMap[v1.Version] = v1` can be deleted
-		versionMap[v1.Version] = v1
-
-		// change, set v2 values
-		v2.Version = YouV2
-		Add or modify some params
-		v2.UpgradeWaitRounds = 12000
-		versionMap[v2.Version] = v2
-	*/
+	// change, set v2 values
+	v2.Version = YouV2
+	//Add or modify some params
+	v2.AllowedFutureBlockTime = 10 * time.Second // use a smaller duration according to consensus time.
+	versionMap[v2.Version] = v2
 
 	return versionMap
 }
@@ -191,6 +189,8 @@ func testNetProtocols() VersionsMap {
 			SeedLookBack:          8,
 			EnableBls:             true,
 			EnableInactivity:      false,
+
+			AllowedFutureBlockTime: 15 * time.Second,
 		},
 		StakingParams: StakingParams{
 			RewardsPoolAddress: common.BigToAddress(big.NewInt(0x0000000000000000000000000000001111111111)),
@@ -249,23 +249,19 @@ func testNetProtocols() VersionsMap {
 		MaxUpgradeWaitRounds: 15000,
 	}
 
-	versionMap[YouV1] = v1
+	// v1 can updates to v2
+	v2 := v1.DeepCopy() // copy first
+	// then update v1
+	v1.ApprovedUpgradeVersion = YouV2
+	// update the map value.
+	// then the previous `versionMap[v1.Version] = v1` can be deleted
+	versionMap[v1.Version] = v1
 
-	// when a new version need to be upgrade, the basic setting should be as follow:
-	/*
-		v2 := v1.DeepCopy() // copy first
-		// then update v1
-		v1.ApprovedUpgradeVersion = YouV2
-		// update the map value.
-		// then the previous `versionMap[v1.Version] = v1` can be deleted
-		versionMap[v1.Version] = v1
-
-		// change, set v2 values
-		v2.Version = YouV2
-		Add or modify some params
-		v2.UpgradeWaitRounds = 12000
-		versionMap[v2.Version] = v2
-	*/
+	// change, set v2 values
+	v2.Version = YouV2
+	//Add or modify some params
+	v2.AllowedFutureBlockTime = 10 * time.Second // use a smaller duration according to consensus time.
+	versionMap[v2.Version] = v2
 
 	return versionMap
 }
@@ -290,6 +286,8 @@ func protocolsForTestCase() VersionsMap {
 			SeedLookBack:          8,
 			EnableBls:             true,
 			EnableInactivity:      false,
+
+			AllowedFutureBlockTime: 15 * time.Second,
 		},
 		StakingParams: StakingParams{
 			RewardsPoolAddress: common.BigToAddress(big.NewInt(0x0000000000000000000000000000001111111111)),
@@ -348,7 +346,19 @@ func protocolsForTestCase() VersionsMap {
 		MaxUpgradeWaitRounds: 1500,
 	}
 
-	versionMap[YouV1] = v1
+	// v1 can updates to v2
+	v2 := v1.DeepCopy() // copy first
+	// then update v1
+	v1.ApprovedUpgradeVersion = YouV2
+	// update the map value.
+	// then the previous `versionMap[v1.Version] = v1` can be deleted
+	versionMap[v1.Version] = v1
+
+	// change, set v2 values
+	v2.Version = YouV2
+	//Add or modify some params
+	v2.AllowedFutureBlockTime = 10 * time.Second // use a smaller duration according to consensus time.
+	versionMap[v2.Version] = v2
 
 	return versionMap
 }

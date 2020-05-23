@@ -110,6 +110,8 @@ type CaravelParams struct {
 	SeedLookBack          uint64
 	EnableBls             bool // enable bls signature. may be deprecated due to performance or security reason.
 	EnableInactivity      bool
+	// Max time from current time allowed for blocks, before they're considered future blocks
+	AllowedFutureBlockTime time.Duration
 }
 
 // StakingParams contains parameters of the staking module
