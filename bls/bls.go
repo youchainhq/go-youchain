@@ -20,7 +20,7 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
-	"github.com/phoreproject/bls/g2pubs"
+	"github.com/youchainhq/bls/g2pubs"
 	"log"
 )
 

@@ -18,7 +18,7 @@ package bls
 
 import (
 	"errors"
-	"github.com/phoreproject/bls/g2pubs"
+	"github.com/youchainhq/bls/g2pubs"
 )
 
 var ErrSigMismatch = errors.New("signature mismatch")
