@@ -250,9 +250,11 @@ func (pm *ProtocolManager) handle(p *peer, hook func()) error {
 		pm.peerLifecycleFun(p, peerAdded)
 	}
 
-	// Propagate existing transactions. new transactions appearing
-	// after this will be sent via broadcasts.
-	pm.syncTransactions(p)
+	if pnt == params.ArchiveNode || pnt == params.FullNode {
+		// Propagate existing transactions. new transactions appearing
+		// after this will be sent via broadcasts.
+		pm.syncTransactions(p)
+	}
 
 	logging.Info("handshake accept new peer", "pid", p.id, "total", pm.peers.Len())
 

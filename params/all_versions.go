@@ -166,6 +166,15 @@ func mainNetProtocols() VersionsMap {
 	v2.AllowedFutureBlockTime = 10 * time.Second // use a smaller duration according to consensus time.
 	versionMap[v2.Version] = v2
 
+	// YouV3 adjust `SubsidyThreshold` and `UpgradeThreshold`, and tune txs-broadcast strategy
+	v3 := v2.DeepCopy()
+	v2.ApprovedUpgradeVersion = YouV3
+	versionMap[v2.Version] = v2
+	v3.SubsidyThreshold = 15 * YOU
+	v3.UpgradeThreshold = 8000 // will take effect on the next upgrade
+	v3.Version = YouV3
+	versionMap[v3.Version] = v3
+
 	return versionMap
 }
 
@@ -263,6 +272,15 @@ func testNetProtocols() VersionsMap {
 	v2.AllowedFutureBlockTime = 10 * time.Second // use a smaller duration according to consensus time.
 	versionMap[v2.Version] = v2
 
+	// YouV3 adjust `SubsidyThreshold` and `UpgradeThreshold`, and tune txs-broadcast strategy
+	v3 := v2.DeepCopy()
+	v2.ApprovedUpgradeVersion = YouV3
+	versionMap[v2.Version] = v2
+	v3.SubsidyThreshold = 15 * YOU
+	v3.UpgradeThreshold = 8000 // will take effect on the next upgrade
+	v3.Version = YouV3
+	versionMap[v3.Version] = v3
+
 	return versionMap
 }
 
@@ -359,6 +377,15 @@ func protocolsForTestCase() VersionsMap {
 	//Add or modify some params
 	v2.AllowedFutureBlockTime = 10 * time.Second // use a smaller duration according to consensus time.
 	versionMap[v2.Version] = v2
+
+	// YouV3 adjust `SubsidyThreshold` and `UpgradeThreshold`, and tune txs-broadcast strategy
+	v3 := v2.DeepCopy()
+	v2.ApprovedUpgradeVersion = YouV3
+	versionMap[v2.Version] = v2
+	v3.SubsidyThreshold = 15 * YOU
+	v3.UpgradeThreshold = 800 // will take effect on the next upgrade
+	v3.Version = YouV3
+	versionMap[v3.Version] = v3
 
 	return versionMap
 }

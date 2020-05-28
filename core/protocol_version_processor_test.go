@@ -36,7 +36,8 @@ func TestVerifyYouVersionState(t *testing.T) {
 		wantNoError bool
 		wantErr     error
 	}
-	yp, ok := params.Versions[params.YouCurrentVersion]
+	// SHOULD NOT use params.YouCurrentVersion here, because the test case only test V1 or V1 upgrade to V2
+	yp, ok := params.Versions[params.YouV1]
 	require.True(t, ok)
 
 	tcs := []tcS{

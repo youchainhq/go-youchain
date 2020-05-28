@@ -24,6 +24,8 @@ const (
 	YouV1 = YouVersion(1)
 	// YouV2 adds the parameter `AllowedFutureBlockTime`
 	YouV2 = YouVersion(2)
+	// YouV3 adjust `SubsidyThreshold` and `UpgradeThreshold`, and tune txs-broadcast strategy
+	YouV3 = YouVersion(3)
 )
 
 // !!! ********************* !!!
@@ -32,4 +34,4 @@ const (
 
 // YouCurrentVersion is the latest version and should be used
 // when a specific version is not provided.
-const YouCurrentVersion = YouV2
+const YouCurrentVersion = YouV3

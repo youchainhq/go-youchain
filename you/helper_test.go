@@ -146,7 +146,8 @@ func newTestPeer(t *testing.T, name string, version int, pm *ProtocolManager, sh
 	var id enode.ID
 	rand.Read(id[:])
 
-	peer := pm.newPeer(version, p2p.NewPeer(id, name, nil), net)
+	nodetype := uint16(2) //fullnode
+	peer := pm.newPeer(version, p2p.NewPeer(id, name, nil, nodetype), net)
 
 	// Start the peer on a new thread
 	errc := make(chan error, 1)

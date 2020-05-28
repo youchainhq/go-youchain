@@ -127,9 +127,11 @@ type Peer struct {
 }
 
 // NewPeer returns a peer for testing purposes.
-func NewPeer(id enode.ID, name string, caps []Cap) *Peer {
+func NewPeer(id enode.ID, name string, caps []Cap, nodetype uint16) *Peer {
 	//pipe, _ := net.Pipe()
-	node := enode.SignNull(new(enr.Record), id)
+	r := new(enr.Record)
+	r.Set(enr.NODETYPE(nodetype))
+	node := enode.SignNull(r, id)
 	conn := &conn{session: nil, transport: nil, node: node, caps: caps, name: name}
 	peer := newPeer(conn, nil)
 	close(peer.closed) // ensures Disconnect doesn't block
