@@ -384,6 +384,10 @@ func DoEstimateGas(ctx context.Context, c *Container, args CallArgs, blockNr rpc
 		hi  uint64
 		cap uint64
 	)
+	if blockNr == rpc.PendingBlockNumber && !c.youChain.Miner().Mining() {
+		// only the working miner has pending block. if the miner is not working, change to the latest block.
+		blockNr = rpc.LatestBlockNumber
+	}
 	logging.Info("DoEstimateGas", "height", blockNr.Int64(), "gasCap", gasCap)
 	if args.Gas != nil && uint64(*args.Gas) >= params.TxGas {
 		hi = uint64(*args.Gas)
@@ -406,7 +410,7 @@ func DoEstimateGas(ctx context.Context, c *Container, args CallArgs, blockNr rpc
 	executable := func(gas uint64) bool {
 		args.Gas = (*hexutil.Uint64)(&gas)
 		logging.Info("DoEstimateGas start doCall", "height", blockNr.Int64(), "gasCap", gasCap, "cap", cap)
-		_, _, failed, err := DoCall(ctx, c, args, rpc.PendingBlockNumber, vm.LocalConfig{}, 0, gasCap, false)
+		_, _, failed, err := DoCall(ctx, c, args, blockNr, vm.LocalConfig{}, 0, gasCap, false)
 		if err != nil || failed {
 			logging.Error("DoEstimateGas failed", "err", err, "failed", failed)
 			return false
