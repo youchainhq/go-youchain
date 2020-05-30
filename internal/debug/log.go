@@ -18,11 +18,7 @@
 package debug
 
 import (
-	"github.com/mattn/go-colorable"
-	"github.com/mattn/go-isatty"
 	"github.com/youchainhq/go-youchain/logging"
-	"io"
-	"os"
 )
 
 func SetupLogger(printOrigin bool, level int, vmodule string, logDir string) error {
@@ -36,20 +32,12 @@ func SetupLogger(printOrigin bool, level int, vmodule string, logDir string) err
 	}
 
 	if logDir != "" {
-		//terminal handler
-		usecolor := (isatty.IsTerminal(os.Stdout.Fd()) || isatty.IsCygwinTerminal(os.Stdout.Fd())) && os.Getenv("TERM") != "dumb"
-		output := io.Writer(os.Stdout)
-		if usecolor {
-			output = colorable.NewColorableStderr()
-		}
-
 		//setup file rotate handler
 		config := logging.NewRotateConfig()
 		config.LogDir = logDir
-		rfh := logging.NewFileRotateHandler(config, logging.TerminalFormat(usecolor))
+		rfh := logging.NewFileRotateHandler(config, logging.TerminalFormat(false))
 
-		ostream := logging.StreamHandler(output, logging.TerminalFormat(usecolor))
-		logging.GRoot().SetHandler(logging.MultiHandler(ostream, rfh))
+		logging.GRoot().SetHandler(rfh)
 	}
 
 	return nil
