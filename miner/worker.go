@@ -279,17 +279,18 @@ func (w *worker) commitNewWork(interrupt *int32) {
 	coinbase.SetBytes(w.engine.GetValMainAddress().Bytes())
 
 	parent := w.chain.CurrentBlock()
+	timestamp := uint64(time.Now().Unix())
 
-	if uint64(time.Now().Unix()) <= parent.Time() {
-		log.Warn("local time is far behind")
-		return
+	if timestamp <= parent.Time() {
+		log.Warn("local time is far behind, use parent time plus one.")
+		timestamp = parent.Time() + 1
 	}
 
 	num := parent.Number()
 	header := &types.Header{
 		ParentHash: parent.Hash(),
 		Number:     num.Add(num, common.Big1()),
-		Time:       uint64(time.Now().Unix()),
+		Time:       timestamp,
 		Coinbase:   coinbase,
 		GasLimit:   core.CalcGasLimit(parent),
 		GasRewards: big.NewInt(0),

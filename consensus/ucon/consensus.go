@@ -51,10 +51,6 @@ var (
 	errInvalidSealer = errors.New("invalid sealer")
 )
 
-var (
-	allowedFutureBlockTime = 15 * time.Second // Max time from current time allowed for blocks, before they're considered future blocks
-)
-
 func (s *Server) Author(header *types.Header) (common.Address, error) {
 	return common.Address{}, nil
 }
@@ -75,8 +71,13 @@ func (s *Server) verifyHeader(chain consensus.ChainReader, header *types.Header,
 		return errUnknownBlock
 	}
 
+	// get consensus parameters for round
+	yp, err := chain.VersionForRoundWithParents(header.Number.Uint64(), parents)
+	if err != nil {
+		return err
+	}
 	// Don't waste time checking blocks from the future
-	if header.Time > uint64(time.Now().Add(allowedFutureBlockTime).Unix()) {
+	if header.Time > uint64(time.Now().Add(yp.AllowedFutureBlockTime).Unix()) {
 		return consensus.ErrFutureBlock
 	}
 
@@ -90,7 +91,7 @@ func (s *Server) verifyHeader(chain consensus.ChainReader, header *types.Header,
 		return err
 	}
 
-	return s.verifyCascadingFields(chain, header, parents, seal)
+	return s.verifyCascadingFields(chain, header, parents, seal, yp)
 }
 
 func (s *Server) verifySignature(header *types.Header) error {
@@ -118,7 +119,7 @@ func (s *Server) verifySignature(header *types.Header) error {
 // rather depend on a batch of previous headers. The caller may optionally pass
 // in a batch of parents (ascending order) to avoid looking those up from the
 // database. This is useful for concurrently verifying a batch of new headers.
-func (s *Server) verifyCascadingFields(chain consensus.ChainReader, header *types.Header, parents []*types.Header, seal bool) error {
+func (s *Server) verifyCascadingFields(chain consensus.ChainReader, header *types.Header, parents []*types.Header, seal bool, yp *params.YouParams) error {
 	// The genesis block is the always valid dead-end
 	number := header.Number.Uint64()
 	if number == 0 {
@@ -148,17 +149,13 @@ func (s *Server) verifyCascadingFields(chain consensus.ChainReader, header *type
 		return consensus.ErrExistCanonical
 	}
 	if seal {
-		return s.verifyConsensusField(chain, header, parents)
+		return s.verifyConsensusField(chain, header, parents, yp)
 	}
 	return nil
 }
 
-func (s *Server) verifyConsensusField(chain consensus.ChainReader, header *types.Header, parents []*types.Header) error {
+func (s *Server) verifyConsensusField(chain consensus.ChainReader, header *types.Header, parents []*types.Header, yp *params.YouParams) error {
 
-	yp, err := chain.VersionForRoundWithParents(header.Number.Uint64(), parents)
-	if err != nil {
-		return err
-	}
 	cp := &yp.CaravelParams
 	seedHeader, err := s.getLookBackHeader(cp, chain, header.Number, params.LookBackSeed, parents)
 	if err != nil {
@@ -580,7 +577,11 @@ func (s *Server) VerifySeal(chain consensus.ChainReader, header *types.Header) e
 	if err := s.verifySignature(header); err != nil {
 		return err
 	}
-	return s.verifyConsensusField(chain, header, nil)
+	yp, err := chain.VersionForRoundWithParents(header.Number.Uint64(), nil)
+	if err != nil {
+		return err
+	}
+	return s.verifyConsensusField(chain, header, nil, yp)
 }
 
 // VerifySideChainHeader checks whether a side chain block confirms to the consensus rules

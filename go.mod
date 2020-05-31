@@ -25,13 +25,13 @@ require (
 	github.com/nanyan/golz4 v1.0.0
 	github.com/pborman/uuid v0.0.0-20180827223501-4c1ecd6722e8
 	github.com/peterh/liner v1.1.0
-	github.com/phoreproject/bls v0.0.0-20191211001008-9d5f85bf4a9b
 	github.com/rcrowley/go-metrics v0.0.0-20190826022208-cac0b30c2563
 	github.com/robertkrimen/otto v0.0.0-20180617131154-15f95af6e78d
 	github.com/rs/cors v0.0.0-20180826180256-dc7332ab32be
 	github.com/stretchr/testify v1.4.0
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/urfave/cli v1.21.0
+	github.com/youchainhq/bls v0.9.0
 	golang.org/x/crypto v0.0.0-20200115085410-6d4e4cb37c7d
 	golang.org/x/net v0.0.0-20200226121028-0de0cce0169b
 	golang.org/x/sys v0.0.0-20190904154756-749cb33beabd

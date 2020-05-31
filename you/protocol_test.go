@@ -73,7 +73,8 @@ func testStatusMsgErrors(t *testing.T, protocol int) {
 
 	for i, test := range tests {
 		p, errc := newTestPeer(t, "peer", protocol, pm, false)
-
+		ty := p.Node().Nodetype().String()
+		fmt.Println(ty)
 		go p2p.Send(p.app, test.code, test.data)
 
 		select {

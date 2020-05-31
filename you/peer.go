@@ -26,6 +26,7 @@ import (
 	"github.com/youchainhq/go-youchain/crypto"
 	"github.com/youchainhq/go-youchain/logging"
 	"github.com/youchainhq/go-youchain/p2p"
+	"github.com/youchainhq/go-youchain/params"
 	"github.com/youchainhq/go-youchain/rlp"
 	"math/big"
 	"sync"
@@ -150,7 +151,7 @@ func (p *peer) broadcast() {
 			if !ok {
 				return
 			}
-			if err := p.SendConsenuse(ev); err != nil {
+			if err := p.SendConsensus(ev); err != nil {
 				return
 			}
 		case txs := <-p.queuedTxs:
@@ -199,7 +200,7 @@ func (p *peer) SendTransactions(txs types.Transactions) error {
 	return nil
 }
 
-func (p *peer) SendConsenuse(ev *ucon.MessageEvent) error {
+func (p *peer) SendConsensus(ev *ucon.MessageEvent) error {
 	evb, err := rlp.EncodeToBytes(ev)
 	if err != nil {
 		return err
@@ -551,13 +552,16 @@ func (ps *PeerSet) PeersWithoutBlock(hash common.Hash) []*peer {
 
 // PeersWithoutTx retrieves a list of peers that do not have a given transaction
 // in their set of known hashes.
+// Only returns those peers whose node type is ArchiveNode or FullNode.
 func (ps *PeerSet) PeersWithoutTx(hash common.Hash) []*peer {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 
 	list := make([]*peer, 0, len(ps.peers))
 	for _, p := range ps.peers {
-		if !p.knownTxs.Contains(hash) {
+		pnt := p.Node().Nodetype()
+		if (pnt == params.ArchiveNode || pnt == params.FullNode) &&
+			!p.knownTxs.Contains(hash) {
 			list = append(list, p)
 		}
 	}

@@ -22,6 +22,10 @@ type YouVersion uint64
 const (
 	// YouV1 is a baseline version of the YOUChain consensus protocol.
 	YouV1 = YouVersion(1)
+	// YouV2 adds the parameter `AllowedFutureBlockTime`
+	YouV2 = YouVersion(2)
+	// YouV3 adjust `SubsidyThreshold` and `UpgradeThreshold`, and tune txs-broadcast strategy
+	YouV3 = YouVersion(3)
 )
 
 // !!! ********************* !!!
@@ -30,4 +34,4 @@ const (
 
 // YouCurrentVersion is the latest version and should be used
 // when a specific version is not provided.
-const YouCurrentVersion = YouV1
+const YouCurrentVersion = YouV3
