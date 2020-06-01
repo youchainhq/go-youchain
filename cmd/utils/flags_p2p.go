@@ -62,8 +62,8 @@ var (
 		cli.BoolFlag{Name: "p2p.localnet", Destination: &p2pLoaclNet, Usage: "The node runs on the local area network"},
 
 		cli.StringFlag{Name: "nat.type", Value: "Unknown", Destination: &defaultNatType, Usage: "NAT type, vales:Unknown|None|Full|Restricted|PortRestricted|Symmetric"},
-		cli.StringFlag{Name: "nat.master", Value: "27.159.122.55:45521", Usage: "NAT master server IP address and port", Destination: &natMasterAddr},
-		cli.StringFlag{Name: "nat.slave", Value: "27.159.122.3:45523", Usage: "NAT slave server IP address and port", Destination: &natSlaveAddr},
+		cli.StringFlag{Name: "nat.master", Value: "42.62.25.77:45521", Usage: "NAT master server IP address and port", Destination: &natMasterAddr},
+		cli.StringFlag{Name: "nat.slave", Value: "42.62.25.79:45523", Usage: "NAT slave server IP address and port", Destination: &natSlaveAddr},
 		cli.StringFlag{Name: "nat.pubservice", Value: "stun.ideasip.com:3478", Destination: &natPublicService, Usage: "NAT public detection service address"},
 	}
 )
@@ -78,7 +78,7 @@ func SetP2PConfig(ctx *cli.Context, nodeConfig *node.Config) error {
 	natType = enode.GetNATTypeFromString(defaultNatType)
 	if natType == enode.NATUnknown {
 		logging.Info("start Nat check", "p2p port", nodeCfg.P2pPort, "discover port", nodeCfg.P2pDiscover)
-		natType, err = checkNatTypeLoop(nodeCfg.P2pPort, nodeCfg.P2pDiscover, true)
+		natType, err = checkNatTypeLoop(nodeCfg.P2pPort, nodeCfg.P2pDiscover, false)
 		if err != nil {
 			logging.Error("Nat check failed", "err", err)
 			return err
