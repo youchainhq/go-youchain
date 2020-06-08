@@ -50,7 +50,7 @@ func initConsensusProtocols(networkId uint64) {
 		Versions = protocolsForTestCase()
 	default:
 		//other networkid ->private net, use testnet version config
-		Versions = testNetProtocols()
+		Versions = protocolsForTestCase()
 	}
 
 	var seedLookBack uint64
@@ -192,8 +192,8 @@ func testNetProtocols() VersionsMap {
 			ProposerThreshold:     26,
 			ValidatorThreshold:    2000,
 			CertValThreshold:      4000,
-			ConsensusTimeout:      3000 * time.Millisecond,
-			ConsensusStepInterval: 500 * time.Millisecond,
+			ConsensusTimeout:      7500 * time.Millisecond,
+			ConsensusStepInterval: 1500 * time.Millisecond,
 			StakeLookBack:         128,
 			SeedLookBack:          8,
 			EnableBls:             true,
@@ -208,7 +208,7 @@ func testNetProtocols() VersionsMap {
 			SignatureRequired: map[ValidatorRole]bool{
 				RoleChancellor: true,
 				RoleSenator:    true,
-				RoleHouse:      true,
+				RoleHouse:      false,
 			},
 			MinStakes: map[ValidatorRole]uint64{
 				RoleChancellor: 1000,
@@ -231,11 +231,11 @@ func testNetProtocols() VersionsMap {
 				RoleHouse:      4,
 			},
 
-			MaxRewardsPeriod:     10,
+			MaxRewardsPeriod:     128,
 			MaxEvidenceExpiredIn: 120,
 
-			WithdrawDelay:           20,
-			WithdrawRecordRetention: 100,
+			WithdrawDelay:           256,
+			WithdrawRecordRetention: 256,
 
 			ExpelledRoundForDoubleSign: 512,
 			ExpelledRoundForInactive:   128,
@@ -244,18 +244,18 @@ func testNetProtocols() VersionsMap {
 			PenaltyFractionForDoubleSign: 2,
 			PenaltyFractionForInactive:   1,
 
-			StakingTrieFrequency:      8,
-			MaxDelegationForValidator: 20,
-			MaxDelegationForDelegator: 20,
+			StakingTrieFrequency:      128,
+			MaxDelegationForValidator: 50,
+			MaxDelegationForDelegator: 10,
 			MinDelegationTokens:       new(big.Int).Mul(big.NewInt(10), StakeUint),
 
-			MasterAddress: common.HexToAddress("0x35049C793fd29605CdDcFc896620A4522b6f7496"),
+			MasterAddress: common.HexToAddress("0xDb5B7e04725CAa6Bf338b647E6f2C64a5cfF8a44"),
 		},
 
-		UpgradeVoteRounds:    10000,
-		UpgradeThreshold:     9000,
-		MinUpgradeWaitRounds: 10000,
-		MaxUpgradeWaitRounds: 15000,
+		UpgradeVoteRounds:    5000,
+		UpgradeThreshold:     4000,
+		MinUpgradeWaitRounds: 5000,
+		MaxUpgradeWaitRounds: 10000,
 	}
 
 	// v1 can updates to v2
@@ -277,7 +277,6 @@ func testNetProtocols() VersionsMap {
 	v2.ApprovedUpgradeVersion = YouV3
 	versionMap[v2.Version] = v2
 	v3.SubsidyThreshold = 15 * YOU
-	v3.UpgradeThreshold = 8000 // will take effect on the next upgrade
 	v3.Version = YouV3
 	versionMap[v3.Version] = v3
 
@@ -314,7 +313,7 @@ func protocolsForTestCase() VersionsMap {
 			SignatureRequired: map[ValidatorRole]bool{
 				RoleChancellor: true,
 				RoleSenator:    true,
-				RoleHouse:      true,
+				RoleHouse:      false,
 			},
 			MinStakes: map[ValidatorRole]uint64{
 				RoleChancellor: 1000,
@@ -337,11 +336,11 @@ func protocolsForTestCase() VersionsMap {
 				RoleHouse:      4,
 			},
 
-			MaxRewardsPeriod:     128,
+			MaxRewardsPeriod:     8,
 			MaxEvidenceExpiredIn: 120,
 
-			WithdrawDelay:           96,
-			WithdrawRecordRetention: 128,
+			WithdrawDelay:           64,
+			WithdrawRecordRetention: 64,
 
 			ExpelledRoundForDoubleSign: 256,
 			ExpelledRoundForInactive:   64,
@@ -350,9 +349,9 @@ func protocolsForTestCase() VersionsMap {
 			PenaltyFractionForDoubleSign: 2,
 			PenaltyFractionForInactive:   1,
 
-			StakingTrieFrequency:      128,
-			MaxDelegationForValidator: 2000,
-			MaxDelegationForDelegator: 128,
+			StakingTrieFrequency:      16,
+			MaxDelegationForValidator: 20,
+			MaxDelegationForDelegator: 10,
 			MinDelegationTokens:       new(big.Int).Mul(big.NewInt(10), StakeUint),
 
 			MasterAddress: common.HexToAddress("0x35049C793fd29605CdDcFc896620A4522b6f7496"),

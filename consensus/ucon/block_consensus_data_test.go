@@ -20,12 +20,12 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/youchainhq/go-youchain/common"
+	"github.com/youchainhq/go-youchain/common/hexutil"
 	"github.com/youchainhq/go-youchain/core/types"
 	"github.com/youchainhq/go-youchain/crypto"
 	"github.com/youchainhq/go-youchain/rlp"
-
-	"github.com/stretchr/testify/assert"
 )
 
 func TestConsensusDataInBlock(t *testing.T) {
@@ -62,6 +62,19 @@ func TestConsensusDataInBlock(t *testing.T) {
 	}
 
 	assert.Equal(t, dataRev.Round, common.Big1())
+}
+
+func TestExtractConsensusData(t *testing.T) {
+	t.SkipNow() //run on need
+	conBytes := hexutil.MustDecode("0xf84e8001a05d93025288dddb431e3f43e07c63d1a96a28bf033457c74ee3f4d8eed88d3cf601a0010000000000000000000000000000000000000000000000000000000000000001801a8207d0820fa0")
+	data := &BlockConsensusData{}
+	err := rlp.DecodeBytes(conBytes, data)
+	if err != nil {
+		t.Errorf("GetConsensusDataFromHeader failed. err: %v", err)
+	}
+	t.Log("ConsensusData", "Round", data.Round, "RI", data.RoundIndex, "Seed", data.Seed.String(),
+		"SubUsers", data.SubUsers, "ProposerThreshold", data.ProposerThreshold, "ValidatorThreshold", data.ValidatorThreshold,
+		"CertThreshold", data.CertValThreshold, "Priority", data.Priority.String())
 }
 
 func TestBlockConsensusData_GetPublicKey(t *testing.T) {
