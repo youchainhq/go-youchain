@@ -312,7 +312,7 @@ func TestDefaultTestNetGenesisBlock(t *testing.T) {
 	db := youdb.NewMemDatabase()
 	b := g.ToBlock(db)
 	t.Log(b.Hash().String())
-	gh := common.HexToHash("0x6c5857d1394635a3d3f7d5e47a90c0f8565bd96ded33bd28cea2abd30909d29e")
+	gh := common.HexToHash("0xb4758b551d52079d151e7e668db2c7e7230a00dcca8b512d0d0438f6ace25827")
 	if b.Hash() != gh {
 		t.Fatal("DefaultGenesisBlock hash mismatch")
 	}
