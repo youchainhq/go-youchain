@@ -1,4 +1,4 @@
-# binary is not build inside the docker,
-# so ignores the whole context except for the exactly file we need.
-**
-!/output/you-linux-amd64
+**/*_test.go
+/output
+/ignores
+/build

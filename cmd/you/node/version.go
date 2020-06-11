@@ -1,7 +1,7 @@
 package node
 
-const revision = ""
-
-const buildTime = ""
-
-const buildBranch = ""
+var (
+	revision    string
+	buildTime   string
+	buildBranch string
+)
