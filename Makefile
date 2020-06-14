@@ -10,6 +10,8 @@ BIN_BUILD_BRANCH := $(shell git symbolic-ref --short -q HEAD)
 GROUP_NAME := youchain
 SERVICE_NAME := you
 
+.PHONY: build install clean all
+
 # local build. let target build on the top as the default make target.
 build:
 	CGO_ENABLED=1 go build -o $(OUTPUT_DIR)/$(SERVICE_NAME) -ldflags "-s -w -X 'github.com/youchainhq/go-youchain/cmd/you/node.revision=$(GIT_COMMIT)' -X 'github.com/youchainhq/go-youchain/cmd/you/node.buildTime=$(BIN_BUILD_TIME)' -X 'github.com/youchainhq/go-youchain/cmd/you/node.buildBranch=$(BIN_BUILD_BRANCH)'" $(SRC_DIR)
