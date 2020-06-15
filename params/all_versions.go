@@ -175,6 +175,14 @@ func mainNetProtocols() VersionsMap {
 	v3.Version = YouV3
 	versionMap[v3.Version] = v3
 
+	// YouV4 fixes a bug on gas used for a failed staking-transaction.
+	v4 := v3.DeepCopy()
+	v3.ApprovedUpgradeVersion = YouV4
+	versionMap[v3.Version] = v3
+
+	v4.Version = YouV4
+	versionMap[v4.Version] = v4
+
 	return versionMap
 }
 
@@ -279,6 +287,14 @@ func testNetProtocols() VersionsMap {
 	v3.SubsidyThreshold = 15 * YOU
 	v3.Version = YouV3
 	versionMap[v3.Version] = v3
+
+	// YouV4 fixes a bug on gas used for a failed staking-transaction.
+	v4 := v3.DeepCopy()
+	v3.ApprovedUpgradeVersion = YouV4
+	versionMap[v3.Version] = v3
+
+	v4.Version = YouV4
+	versionMap[v4.Version] = v4
 
 	return versionMap
 }
@@ -385,6 +401,14 @@ func protocolsForTestCase() VersionsMap {
 	v3.UpgradeThreshold = 800 // will take effect on the next upgrade
 	v3.Version = YouV3
 	versionMap[v3.Version] = v3
+
+	// YouV4 fixes a bug on gas used for a failed staking-transaction.
+	v4 := v3.DeepCopy()
+	v3.ApprovedUpgradeVersion = YouV4
+	versionMap[v3.Version] = v3
+
+	v4.Version = YouV4
+	versionMap[v4.Version] = v4
 
 	return versionMap
 }

@@ -26,6 +26,8 @@ const (
 	YouV2 = YouVersion(2)
 	// YouV3 adjust `SubsidyThreshold` and `UpgradeThreshold`, and tune txs-broadcast strategy
 	YouV3 = YouVersion(3)
+	// YouV4 fixes a bug on gas used for a failed staking-transaction.
+	YouV4 = YouVersion(4)
 )
 
 // !!! ********************* !!!
@@ -34,4 +36,4 @@ const (
 
 // YouCurrentVersion is the latest version and should be used
 // when a specific version is not provided.
-const YouCurrentVersion = YouV3
+const YouCurrentVersion = YouV4

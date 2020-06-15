@@ -82,12 +82,18 @@ func (t *TxConverter) ApplyMessage(msgCtx *core.MessageContext) ([]byte, uint64,
 	err := rlp.DecodeBytes(msgCtx.Msg.Data(), &msg)
 	if err != nil {
 		logging.Warn("tx decode failed", "txhash", msgCtx.Msg.TxHash().String(), "data", msgCtx.Msg.Data(), "err", err)
+		if msgCtx.Cfg.CurrYouParams.Version >= params.YouV4 {
+			msgCtx.UseGas(msgCtx.AvailableGas)
+		}
 		return nil, msgCtx.InitialGas, true, nil
 	}
 
 	err = getHandler(msg.Action)(msgCtx, msg.Payload)
 	if err != nil {
 		logging.Warn("tx failed", "txhash", msgCtx.Msg.TxHash().String(), "action", msg.Action, "err", err)
+		if msgCtx.Cfg.CurrYouParams.Version >= params.YouV4 {
+			msgCtx.UseGas(msgCtx.AvailableGas)
+		}
 		return nil, msgCtx.InitialGas, true, nil
 	}
 	return nil, msgCtx.GasUsed(), false, nil
