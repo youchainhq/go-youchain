@@ -36,11 +36,25 @@ curl -X GET $APISERVER/api/v1/namespaces/default/pods/$podname/log?follow=true -
 # check job status
 status=$(curl -X GET $APISERVER/apis/batch/v1/namespaces/default/jobs/$job/status -s --header "Authorization: Bearer $APITOKEN" --insecure)
 
+echo -e "job status:\n"$status
 stat=$(echo "$status"|jq .status)
-echo "$stat"
-if [ "$stat" = "\"Failure\"" ]; then
-  jobstat=failed
-else
+
+cnt=1
+while [ "$stat" = "\"Failure\"" ]; do
+  if [ "$cnt" = "10" ]; then
+      break;
+  fi
+  sleep 3s
+  curl -X GET $APISERVER/api/v1/namespaces/default/pods/$podname/log?follow=true -s --header "Authorization: Bearer $APITOKEN" --insecure
+  # check job status
+  status=$(curl -X GET $APISERVER/apis/batch/v1/namespaces/default/jobs/$job/status -s --header "Authorization: Bearer $APITOKEN" --insecure)
+
+  echo -e "job status:\n"$status
+  stat=$(echo "$status"|jq .status)
+  cnt=`expr $cnt + 1`
+done
+
+if [ "$stat" != "\"Failure\"" ]; then
   active=$(echo "$status"|jq .status.active)
   while [ "$active" = "1" ]; do
     sleep 1s
@@ -55,6 +69,8 @@ else
   else
     jobstat=successed
   fi
+else
+  jobstat=failed
 fi
 
 podIp=$(curl -X GET $APISERVER/api/v1/namespaces/default/pods?labelSelector={app=youchain-$app_name_version} -s --header "Authorization: Bearer $APITOKEN" --insecure | jq -r .items[0].status.podIP)

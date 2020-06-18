@@ -1,7 +1,7 @@
 SHELL := /bin/bash
 GROUP_NAME = maisi
 RELEASE_DIR = ${GOPATH}/src/youchain/you-release
-REGISTRY_URL = registry.cn-hangzhou.aliyuncs.com
+REGISTRY_URL = reg.youchaininc.com
 SRC_DIR = ../../cmd/you
 PKG_DIR = github.com/youchainhq/go-youchain/cmd/you
 ROOT_DIR = ../../
@@ -17,18 +17,12 @@ all: push
 project_testcase:
 	cd ${ROOT_DIR} && go test -v -short ./...
 
-update_version:
-	echo -e "package node\n\nconst revision = \"$(BIN_REVISION_STRING)\"\n\nconst buildTime = \"$(BIN_BUILD_TIME)\"\n\nconst buildBranch = \"$(BIN_BUILD_BRANCH)\"" > $(SRC_DIR)/node/version.go
-
-clear_version:
-	echo -e "package node\n\nconst revision = \"\"\n\nconst buildTime = \"\"\n\nconst buildBranch = \"\"" > $(SRC_DIR)/node/version.go
-
 docker:
 	go mod tidy
-	xgo2 --targets=linux/amd64 -ldflags "-s -w" -out you --pkg=${PKG_DIR} ${ROOT_DIR}
+	xgo2 --targets=linux/amd64 -ldflags "-s -w -X 'github.com/youchainhq/go-youchain/cmd/you/node.revision=$(GIT_COMMIT)' -X 'github.com/youchainhq/go-youchain/cmd/you/node.buildTime=$(BIN_BUILD_TIME)' -X 'github.com/youchainhq/go-youchain/cmd/you/node.buildBranch=$(BIN_BUILD_BRANCH)'" -out you --pkg=${PKG_DIR} ${ROOT_DIR}
 	docker build -t ${GROUP_NAME}/${SERVICE_NAME}:$(BIN_REVISION_STRING) .
 	rm -rf you-linux-amd64
 
-push: project_testcase update_version docker clear_version
+push: project_testcase docker
 	docker tag ${GROUP_NAME}/${SERVICE_NAME}:$(BIN_REVISION_STRING) ${REGISTRY_URL}/${GROUP_NAME}/${SERVICE_NAME}:$(BIN_REVISION_STRING)
 	docker push ${REGISTRY_URL}/${GROUP_NAME}/${SERVICE_NAME}:$(BIN_REVISION_STRING)

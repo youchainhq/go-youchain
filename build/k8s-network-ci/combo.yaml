@@ -55,9 +55,9 @@ spec:
     spec:
       serviceAccount: nfs-client-provisioner
       imagePullSecrets:
-        - name: aliyun-secret
+        - name: harborsecret
       containers:
-        - image: registry.cn-hangzhou.aliyuncs.com/maisi/{ci_identify_app_image_version}
+        - image: reg.youchaininc.com/maisi/{ci_identify_app_image_version}
           name: youchain-{ci_identify_app_name_version}
           ports:
             - name: http-rpc
@@ -125,10 +125,10 @@ spec:
         app: {ci_identify_job_name}
     spec:
       imagePullSecrets:
-        - name: aliyun-secret
+        - name: harborsecret
       containers:
         - name: {ci_identify_job_name}
-          image: registry.cn-hangzhou.aliyuncs.com/maisi/yctest:0.7.6
+          image: reg.youchaininc.com/maisi/yctest:0.7.7
           command: ["/bin/yctest-linux-amd64"]
           imagePullPolicy: Always
           args:
