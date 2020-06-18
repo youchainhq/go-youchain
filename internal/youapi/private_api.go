@@ -291,3 +291,35 @@ func (y *PrivateAccountApi) DelValKey(addr common.Address, pwd string) error {
 func (y *PrivateAccountApi) LockValKey() error {
 	return y.c.accountManager.LockValKey()
 }
+
+//ExportKeyJson will export the keyjson in byte from input of the accounts address
+func (y *PrivateAccountApi) ExportKeyJson(addr common.Address, pwd, newPwd string) (keyJSON hexutil.Bytes, err error) {
+	account, local := y.c.accountManager.Find(addr)
+	if !local {
+		return nil, errors.New("account not found")
+	}
+	return y.c.accountManager.Export(account, pwd, newPwd)
+}
+
+//ExportRawKey will export the hexstring privatekey, be cautious employing it
+func (y *PrivateAccountApi) ExportRawKey(addr common.Address, pwd string) (privekey string, err error) {
+	account, local := y.c.accountManager.Find(addr)
+	if !local {
+		return "", errors.New("account not found")
+	}
+	return y.c.accountManager.ExportECDSA(account,pwd)
+}
+
+//AddressKeyResult is the normal account type to differ with valaccount
+type AddressKeyResult struct {
+	Address    common.Address `json:"address"`
+}
+
+//ImportKeyJson import the keyJson byte to conclude accounts
+func (y *PrivateAccountApi) ImportKeyJson(keyJson hexutil.Bytes, pwd, newPwd string) (*AddressKeyResult, error) {
+	acc, err := y.c.accountManager.Import(keyJson, pwd, newPwd)
+	if err != nil {
+		return nil, err
+	}
+	return &AddressKeyResult{acc.Address}, nil
+}
