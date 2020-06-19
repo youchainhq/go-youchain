@@ -539,6 +539,12 @@ youchain._extend({
 			call: 'you_getStakingEndBlockReceipt',
 			params: 1,
 		}),
+		new youchain._extend.Method({
+			name: 'getStakingRecord',
+			call: 'you_getStakingRecord',
+			params: 2,
+			inputFormatter: [youchain._extend.formatters.inputAddressFormatter,youchain._extend.formatters.inputDefaultBlockNumberFormatter]
+		}),
 	],
 	properties: []
 });

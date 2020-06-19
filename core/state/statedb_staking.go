@@ -109,6 +109,15 @@ func (st *StateDB) GetStakingRecordValue(d, v common.Address) *big.Int {
 	return new(big.Int)
 }
 
+func (st *StateDB) GetStakingRecord(d, v common.Address) *Record {
+	key := newBiAddress(d, v)
+	if obj := st.getStakingRecord(*key); obj != nil {
+		r := obj.Record()
+		return &r
+	}
+	return nil
+}
+
 func (st *StateDB) AddStakingRecord(d, v common.Address, txHash common.Hash, newFinalValue *big.Int) {
 	key := newBiAddress(d, v)
 	sr := st.getOrNewStakingRecord(*key)
