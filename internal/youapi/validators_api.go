@@ -19,6 +19,7 @@ package youapi
 
 import (
 	"context"
+	"errors"
 	"github.com/youchainhq/go-youchain/common/math"
 	"sort"
 
@@ -106,6 +107,31 @@ func (y *PublicMainApi) Validators(ctx context.Context, role uint8, page, pageSi
 		}
 	}
 	return dump, nil
+}
+
+type RPCStakingRecord struct {
+	Validator  string        `json:"validator"`
+	FinalValue hexutil.Big   `json:"finalValue"`
+	TxHashes   []common.Hash `json:"txHashes"`
+}
+
+func (y *PublicMainApi) GetStakingRecord(ctx context.Context, validator common.Address, blockNr rpc.BlockNumber) (*RPCStakingRecord, error) {
+	if blockNr == rpc.PendingBlockNumber {
+		return nil, errors.New("no staking-records for pending-block")
+	}
+	state, _, err := y.c.StateAndHeaderByNumber(ctx, blockNr)
+	if state == nil || err != nil {
+		return nil, err
+	}
+	r := state.GetStakingRecord(common.Address{}, validator)
+	if r == nil {
+		return nil, nil
+	}
+	return &RPCStakingRecord{
+		Validator:  validator.String(),
+		FinalValue: hexutil.Big(*r.FinalValue),
+		TxHashes:   r.TxHashes,
+	}, nil
 }
 
 //build tx.data

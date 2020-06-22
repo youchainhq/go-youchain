@@ -304,3 +304,16 @@ func TestDefaultGenesisBlock(t *testing.T) {
 		t.Fatal("DefaultGenesisBlock hash mismatch")
 	}
 }
+
+func TestDefaultTestNetGenesisBlock(t *testing.T) {
+	g := DefaultTestNetGenesisBlock()
+	require.NotNil(t, g)
+	require.Greater(t, len(g.Validators), 0)
+	db := youdb.NewMemDatabase()
+	b := g.ToBlock(db)
+	t.Log(b.Hash().String())
+	gh := common.HexToHash("0xb4758b551d52079d151e7e668db2c7e7230a00dcca8b512d0d0438f6ace25827")
+	if b.Hash() != gh {
+		t.Fatal("DefaultGenesisBlock hash mismatch")
+	}
+}

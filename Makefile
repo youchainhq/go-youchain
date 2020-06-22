@@ -10,59 +10,41 @@ BIN_BUILD_BRANCH := $(shell git symbolic-ref --short -q HEAD)
 GROUP_NAME := youchain
 SERVICE_NAME := you
 
+.PHONY: build install clean all
+
 # local build. let target build on the top as the default make target.
+build:
+	CGO_ENABLED=1 go build -o $(OUTPUT_DIR)/$(SERVICE_NAME) -ldflags "-s -w -X 'github.com/youchainhq/go-youchain/cmd/you/node.revision=$(GIT_COMMIT)' -X 'github.com/youchainhq/go-youchain/cmd/you/node.buildTime=$(BIN_BUILD_TIME)' -X 'github.com/youchainhq/go-youchain/cmd/you/node.buildBranch=$(BIN_BUILD_BRANCH)'" $(SRC_DIR)
 
-build: update_build_info direct_build clear_build_info
+install:
+	CGO_ENABLED=1 go install -ldflags "-s -w -X 'github.com/youchainhq/go-youchain/cmd/you/node.revision=$(GIT_COMMIT)' -X 'github.com/youchainhq/go-youchain/cmd/you/node.buildTime=$(BIN_BUILD_TIME)' -X 'github.com/youchainhq/go-youchain/cmd/you/node.buildBranch=$(BIN_BUILD_BRANCH)'" $(SRC_DIR)
 
-install: update_build_info direct_install clear_build_info
-
-clean: clear_build_info
+clean:
 	go clean -cache
 	rm -rf $(OUTPUT_DIR)
 
-update_build_info:
-	echo "package node\n\nconst revision = \"$(GIT_COMMIT)\"\n\nconst buildTime = \"$(BIN_BUILD_TIME)\"\n\nconst buildBranch = \"$(BIN_BUILD_BRANCH)\"" > $(SRC_DIR)/node/version.go
-
-clear_build_info:
-	echo "package node\n\nconst revision = \"\"\n\nconst buildTime = \"\"\n\nconst buildBranch = \"\"" > $(SRC_DIR)/node/version.go
-
-direct_build:
-	CGO_ENABLED=1 go build -o $(OUTPUT_DIR)/$(SERVICE_NAME) -ldflags "-s -w" $(SRC_DIR)
-
-direct_install:
-	CGO_ENABLED=1 go install -ldflags "-s -w" $(SRC_DIR)
-
 # Cross Compilation Targets (using xgo2 to support gomod)
 
-direct_build_linux:
-	xgo2 --targets=linux/amd64 --dest $(OUTPUT_DIR)/ -ldflags "-s -w" --out "you" --pkg=${PKG_DIR} --goproxy=https://mirrors.aliyun.com/goproxy/ ${ROOT_DIR}
+build_linux:
+	xgo2 --targets=linux/amd64 --dest $(OUTPUT_DIR)/ -ldflags "-s -w -X 'github.com/youchainhq/go-youchain/cmd/you/node.revision=$(GIT_COMMIT)' -X 'github.com/youchainhq/go-youchain/cmd/you/node.buildTime=$(BIN_BUILD_TIME)' -X 'github.com/youchainhq/go-youchain/cmd/you/node.buildBranch=$(BIN_BUILD_BRANCH)'" --out "you" --pkg=${PKG_DIR} --goproxy=https://mirrors.aliyun.com/goproxy/ ${ROOT_DIR}
 
-direct_build_arm64:
-	xgo2 --targets=linux/arm64 --dest $(OUTPUT_DIR)/ -ldflags "-s -w" --out "you" --pkg=${PKG_DIR} --goproxy=https://mirrors.aliyun.com/goproxy/ ${ROOT_DIR}
+build_arm64:
+	xgo2 --targets=linux/arm64 --dest $(OUTPUT_DIR)/ -ldflags "-s -w -X 'github.com/youchainhq/go-youchain/cmd/you/node.revision=$(GIT_COMMIT)' -X 'github.com/youchainhq/go-youchain/cmd/you/node.buildTime=$(BIN_BUILD_TIME)' -X 'github.com/youchainhq/go-youchain/cmd/you/node.buildBranch=$(BIN_BUILD_BRANCH)'" --out "you" --pkg=${PKG_DIR} --goproxy=https://mirrors.aliyun.com/goproxy/ ${ROOT_DIR}
 
-direct_build_win64:
-	xgo2 --targets=windows/amd64 --dest $(OUTPUT_DIR)/ -ldflags "-s -w" --out "you" --pkg=${PKG_DIR} --goproxy=https://mirrors.aliyun.com/goproxy/ ${ROOT_DIR}
+build_win64:
+	xgo2 --targets=windows/amd64 --dest $(OUTPUT_DIR)/ -ldflags "-s -w -X 'github.com/youchainhq/go-youchain/cmd/you/node.revision=$(GIT_COMMIT)' -X 'github.com/youchainhq/go-youchain/cmd/you/node.buildTime=$(BIN_BUILD_TIME)' -X 'github.com/youchainhq/go-youchain/cmd/you/node.buildBranch=$(BIN_BUILD_BRANCH)'" --out "you" --pkg=${PKG_DIR} --goproxy=https://mirrors.aliyun.com/goproxy/ ${ROOT_DIR}
 
-direct_build_win: direct_build_win64
+build_win32:
+	xgo2 --targets=windows/386 --dest $(OUTPUT_DIR)/ -ldflags "-s -w -X 'github.com/youchainhq/go-youchain/cmd/you/node.revision=$(GIT_COMMIT)' -X 'github.com/youchainhq/go-youchain/cmd/you/node.buildTime=$(BIN_BUILD_TIME)' -X 'github.com/youchainhq/go-youchain/cmd/you/node.buildBranch=$(BIN_BUILD_BRANCH)'" --out "you" --pkg=${PKG_DIR} --goproxy=https://mirrors.aliyun.com/goproxy/ ${ROOT_DIR}
 
-direct_build_darwin:
-	xgo2 --targets=darwin/amd64 --dest $(OUTPUT_DIR)/ -ldflags "-s -w" --out "you" --pkg=${PKG_DIR} --goproxy=https://mirrors.aliyun.com/goproxy/ ${ROOT_DIR}
+build_darwin:
+	xgo2 --targets=darwin/amd64 --dest $(OUTPUT_DIR)/ -ldflags "-s -w -X 'github.com/youchainhq/go-youchain/cmd/you/node.revision=$(GIT_COMMIT)' -X 'github.com/youchainhq/go-youchain/cmd/you/node.buildTime=$(BIN_BUILD_TIME)' -X 'github.com/youchainhq/go-youchain/cmd/you/node.buildBranch=$(BIN_BUILD_BRANCH)'" --out "you" --pkg=${PKG_DIR} --goproxy=https://mirrors.aliyun.com/goproxy/ ${ROOT_DIR}
 
-direct_all:
-	xgo2 --targets=*/* --dest $(OUTPUT_DIR)/ -ldflags "-s -w" --out "you" --pkg=${PKG_DIR} --goproxy=https://mirrors.aliyun.com/goproxy/ ${ROOT_DIR}
+all:build
+	xgo2 --targets=linux/amd64,linux/arm64,windows/amd64,windows/386,darwin/amd64 --dest $(OUTPUT_DIR)/ -ldflags "-s -w -X 'github.com/youchainhq/go-youchain/cmd/you/node.revision=$(GIT_COMMIT)' -X 'github.com/youchainhq/go-youchain/cmd/you/node.buildTime=$(BIN_BUILD_TIME)' -X 'github.com/youchainhq/go-youchain/cmd/you/node.buildBranch=$(BIN_BUILD_BRANCH)'" --out "you" --pkg=${PKG_DIR} --goproxy=https://mirrors.aliyun.com/goproxy/ ${ROOT_DIR}
 
-all: update_build_info direct_all clear_build_info
-
-build_linux: update_build_info direct_build_linux clear_build_info
-
-build_arm64: update_build_info direct_build_arm64 clear_build_info
-
-build_win: update_build_info direct_build_win clear_build_info
-
-build_darwin: update_build_info direct_build_darwin clear_build_info
-
-docker: build_linux
-	docker build -t ${GROUP_NAME}/${SERVICE_NAME}:build .
+docker:
+	docker build -t ${GROUP_NAME}/${SERVICE_NAME}:latest-build .
 
 # develop tools for go-youchain developer or smart contract developer
 devtools:

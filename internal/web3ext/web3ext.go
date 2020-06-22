@@ -539,6 +539,12 @@ youchain._extend({
 			call: 'you_getStakingEndBlockReceipt',
 			params: 1,
 		}),
+		new youchain._extend.Method({
+			name: 'getStakingRecord',
+			call: 'you_getStakingRecord',
+			params: 2,
+			inputFormatter: [youchain._extend.formatters.inputAddressFormatter,youchain._extend.formatters.inputDefaultBlockNumberFormatter]
+		}),
 	],
 	properties: []
 });
@@ -644,6 +650,23 @@ youchain._extend({
 		new youchain._extend.Method({
 			name: 'lockValKey',
 			call: 'personal_lockValKey'
+		}),
+		new youchain._extend.Method({
+			name: 'exportKeyJson',
+			call: 'personal_exportKeyJson'
+			params: 3,
+			inputFormatter: [youchain._extend.formatters.inputAddressFormatter, null, null]
+		}),
+		new youchain._extend.Method({
+			name: 'exportRawKey',
+			call: 'personal_exportRawKey'
+			params: 2,
+			inputFormatter: [youchain._extend.formatters.inputAddressFormatter, null]
+		}),
+		new youchain._extend.Method({
+			name: 'importKeyJson',
+			call: 'personal_importKeyJson'
+			params: 3,
 		}),
 	],
 	properties: []
