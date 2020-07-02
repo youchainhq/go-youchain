@@ -77,7 +77,7 @@ func IntrinsicGas(basicGas uint64, data []byte) (uint64, error) {
 
 func (d *DefaultConverter) ApplyMessage(msgCtx *MessageContext) (ret []byte, usedGas uint64, failed bool, err error) {
 	// Create a new context to be used in the EVM environment
-	evmctx := NewEVMContext(msgCtx.Msg, msgCtx.Header, msgCtx.Chain, msgCtx.Coinbase)
+	evmctx := NewEVMContext(msgCtx.Msg, msgCtx.Header, msgCtx.Chain, msgCtx.Coinbase, msgCtx.Recorder)
 	// Create a new environment which holds all relevant information about the transaction and calling mechanisms.
 	evm := vm.NewEVM(evmctx, msgCtx.State, msgCtx.Cfg)
 	//handle cancel

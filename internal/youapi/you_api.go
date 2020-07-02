@@ -33,6 +33,7 @@ import (
 	"github.com/youchainhq/go-youchain/core/types"
 	"github.com/youchainhq/go-youchain/core/vm"
 	"github.com/youchainhq/go-youchain/crypto"
+	"github.com/youchainhq/go-youchain/local"
 	"github.com/youchainhq/go-youchain/logging"
 	"github.com/youchainhq/go-youchain/params"
 	"github.com/youchainhq/go-youchain/rlp"
@@ -362,7 +363,7 @@ func DoCall(ctx context.Context, c *Container, args CallArgs, blockNr rpc.BlockN
 	if overrideBalance {
 		state.SetBalance(addr, math.MaxBig256)
 	}
-	res, gas, failed, err := c.processor.ApplyMessageEntry(msg, state, c.youChain.BlockChain(), header, nil, gp, vmCfg)
+	res, gas, failed, err := c.processor.ApplyMessageEntry(msg, state, c.youChain.BlockChain(), header, nil, gp, vmCfg, local.FakeRecorder())
 
 	if err == core.ErrCancelled {
 		return nil, 0, false, fmt.Errorf("execution aborted (timeout = %v)", timeout)

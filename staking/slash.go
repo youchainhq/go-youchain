@@ -28,7 +28,6 @@ import (
 	"github.com/youchainhq/go-youchain/common/hexutil"
 	"github.com/youchainhq/go-youchain/core/state"
 	"github.com/youchainhq/go-youchain/core/types"
-	"github.com/youchainhq/go-youchain/core/vm"
 	"github.com/youchainhq/go-youchain/crypto"
 	"github.com/youchainhq/go-youchain/params"
 	"github.com/youchainhq/go-youchain/rlp"
@@ -48,7 +47,8 @@ type processedEvidencesResult struct {
 }
 
 //replaySlashing  replay evidences in block
-func (s *Staking) replaySlashing(config *params.YouParams, chain vm.ChainReader, header *types.Header, receipt *types.Receipt, db *state.StateDB) ([]Evidence, []Evidence, []*common.Address, error) {
+func (s *Staking) replaySlashing(ctx *context) ([]Evidence, []Evidence, []*common.Address, error) {
+	header := ctx.header
 	if len(header.SlashData) == 0 {
 		return nil, nil, nil, nil
 	}
@@ -63,7 +63,7 @@ func (s *Staking) replaySlashing(config *params.YouParams, chain vm.ChainReader,
 		return nil, nil, nil, fmt.Errorf("empty evidences of number: %d", header.Number)
 	}
 
-	parentHeight := new(big.Int).Set(chain.CurrentHeader().Number)
+	parentHeight := new(big.Int).Set(ctx.chain.CurrentHeader().Number)
 
 	var verifiedEvidences []Evidence
 	for _, evidence := range evidences {
@@ -96,7 +96,7 @@ func (s *Staking) replaySlashing(config *params.YouParams, chain vm.ChainReader,
 		verifiedEvidences = append(verifiedEvidences, evidence)
 	}
 
-	confirmedEvidences, pendingEvidences, affectedValidators := s.processEvidences(config, db, header, parentHeight, receipt, evidences)
+	confirmedEvidences, pendingEvidences, affectedValidators := s.processEvidences(ctx.config, ctx.db, header, parentHeight, ctx.receipt, evidences)
 	return confirmedEvidences, pendingEvidences, affectedValidators, nil
 }
 
@@ -116,12 +116,12 @@ func cmpSet(a []string, b []string) bool {
 }
 
 //slashing evidences
-func (s *Staking) slashing(config *params.YouParams, chain vm.ChainReader, header *types.Header, receipt *types.Receipt, db *state.StateDB) ([]Evidence, []Evidence, []*common.Address, error) {
-	log.Trace("slashing start", "height", header.Number, "count", len(s.evidences))
+func (s *Staking) slashing(ctx *context) ([]Evidence, []Evidence, []*common.Address, error) {
+	log.Trace("slashing start", "height", ctx.header.Number, "count", len(s.evidences))
 	proc := time.Now()
 	var confirm, pending, affected int
 	defer func() {
-		log.Trace("slashing finished", "height", header.Number, "miner", header.Coinbase.String(), "confirm", confirm, "pending", pending, "affected", affected, "elapsed", time.Since(proc))
+		log.Trace("slashing finished", "height", ctx.header.Number, "miner", ctx.header.Coinbase.String(), "confirm", confirm, "pending", pending, "affected", affected, "elapsed", time.Since(proc))
 	}()
 
 	if len(s.evidences) == 0 {
@@ -135,7 +135,7 @@ func (s *Staking) slashing(config *params.YouParams, chain vm.ChainReader, heade
 	var evidences = make([]Evidence, len(s.evidences))
 	copy(evidences, s.evidences)
 	parentHeight := s.blockChain.CurrentHeader().Number //check parent block
-	confirmedEvidences, pendingEvidences, affectedValidators := s.processEvidences(config, db, header, parentHeight, receipt, evidences)
+	confirmedEvidences, pendingEvidences, affectedValidators := s.processEvidences(ctx.config, ctx.db, ctx.header, parentHeight, ctx.receipt, evidences)
 	s.evidences = pendingEvidences
 	affected = len(affectedValidators)
 	pending = len(pendingEvidences)
@@ -147,7 +147,7 @@ func (s *Staking) slashing(config *params.YouParams, chain vm.ChainReader, heade
 
 	if len(confirmedEvidences) > 0 {
 		if slashData, err = rlp.EncodeToBytes(confirmedEvidences); err == nil {
-			header.SlashData = slashData
+			ctx.header.SlashData = slashData
 		}
 	}
 

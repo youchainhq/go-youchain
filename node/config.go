@@ -85,6 +85,7 @@ type Config struct {
 	LogLevel   int    `yaml:"loglevel" json:"log_level"`
 	LogVmodule string `yaml:"logvmodule" json:"log_vmodule"`
 	LogPath    string `yaml:"logpath" json:"log_path"`
+	Watch      bool   `yaml:"watch" json:"watch"` // enable watching some more detailed non-consensus data
 
 	BootNodeId      int    `yaml:"bootnodeid" json:"boot_nodeid"`
 	BootUconFile    string `yaml:"bootuconfile" json:"bootuconfile"`

@@ -27,6 +27,7 @@ import (
 	"github.com/youchainhq/go-youchain/core/types"
 	"github.com/youchainhq/go-youchain/core/vm"
 	"github.com/youchainhq/go-youchain/crypto"
+	"github.com/youchainhq/go-youchain/local"
 	"github.com/youchainhq/go-youchain/logging"
 	"github.com/youchainhq/go-youchain/params"
 	"math/big"
@@ -40,7 +41,7 @@ var (
 
 var _ Processor = &StateProcessor{}
 
-type BlockHookFn func(chain vm.ChainReader, header *types.Header, txs []*types.Transaction, state *state.StateDB, seal bool) (*types.Receipt, []byte, error)
+type BlockHookFn func(chain vm.ChainReader, header *types.Header, txs []*types.Transaction, state *state.StateDB, seal bool, recorder local.DetailRecorder) (*types.Receipt, []byte, error)
 type hookFunc struct {
 	Name string
 	Run  BlockHookFn
@@ -67,9 +68,9 @@ func NewStateProcessor(bc *BlockChain, engine consensus.Engine) *StateProcessor 
 	}
 }
 
-func (p *StateProcessor) Process(yp *params.YouParams, block *types.Block, statedb *state.StateDB, lcfg vm.LocalConfig) (types.Receipts, []*types.Log, uint64, error) {
+func (p *StateProcessor) Process(yp *params.YouParams, block *types.Block, statedb *state.StateDB, lcfg vm.LocalConfig, recorder local.DetailRecorder) (*types.ProcessResult, error) {
 	if yp == nil {
-		return nil, nil, 0, errors.New("no YouParams")
+		return nil, errors.New("no YouParams")
 	}
 	var (
 		receipts   types.Receipts
@@ -83,12 +84,14 @@ func (p *StateProcessor) Process(yp *params.YouParams, block *types.Block, state
 	cfg := CombineVMConfig(yp, lcfg)
 	signer := types.MakeSigner(header.Number)
 	ProcessSenders(block.Transactions(), signer)
+	// local detail
+	recorder.Init(header.Hash(), block.NumberU64())
 
 	for i, tx := range block.Transactions() {
 		statedb.Prepare(tx.Hash(), block.Hash(), i)
-		receipt, _, err := p.ApplyTransaction(tx, signer, statedb, p.bc, header, nil, usedGas, gasRewards, gp, cfg)
+		receipt, _, err := p.ApplyTransaction(tx, signer, statedb, p.bc, header, nil, usedGas, gasRewards, gp, cfg, recorder)
 		if err != nil {
-			return nil, nil, 0, err
+			return nil, err
 		}
 		receipts = append(receipts, receipt)
 		allLogs = append(allLogs, receipt.Logs...)
@@ -96,12 +99,12 @@ func (p *StateProcessor) Process(yp *params.YouParams, block *types.Block, state
 
 	// verify gas rewards
 	if gasRewards.Cmp(header.GasRewards) != 0 {
-		return nil, nil, 0, errInvalidGasRewards
+		return nil, errInvalidGasRewards
 	}
 
 	logging.Info("process block", "number", header.Number, "txs", block.Transactions().Len(), "usedGas", usedGas, "hUsedGas", header.GasUsed, "gasRewards", gasRewards, "hGasRewards", header.GasRewards)
 
-	extendReceipts, _, _ := p.EndBlock(p.bc, header, block.Transactions(), statedb, false)
+	extendReceipts, _, _ := p.EndBlock(p.bc, header, block.Transactions(), statedb, false, recorder)
 	for _, receipt := range extendReceipts {
 		if receipt != nil {
 			receipts = append(receipts, receipt)
@@ -110,7 +113,13 @@ func (p *StateProcessor) Process(yp *params.YouParams, block *types.Block, state
 	}
 	p.engine.Finalize(p.bc, header, statedb, block.Transactions(), receipts)
 
-	return receipts, allLogs, *usedGas, nil
+	exdetail := recorder.Finalize()
+	return &types.ProcessResult{
+		Recs:     receipts,
+		Logs:     allLogs,
+		UsedGas:  *usedGas,
+		ExDetail: exdetail,
+	}, nil
 }
 
 // ApplyTransaction attempts to apply a transaction to the given state database
@@ -118,7 +127,7 @@ func (p *StateProcessor) Process(yp *params.YouParams, block *types.Block, state
 // for the transaction, gas used and an error if the transaction failed,
 // indicating the block was invalid.
 func (p *StateProcessor) ApplyTransaction(tx *types.Transaction, signer types.Signer, statedb *state.StateDB,
-	bc ChainContext, header *types.Header, author *common.Address, usedGas *uint64, gasRewards *big.Int, gp *GasPool, cfg *vm.Config) (*types.Receipt, uint64, error) {
+	bc ChainContext, header *types.Header, author *common.Address, usedGas *uint64, gasRewards *big.Int, gp *GasPool, cfg *vm.Config, recorder local.DetailRecorder) (*types.Receipt, uint64, error) {
 	msg, err := tx.AsMessage(signer)
 	if err != nil {
 		return nil, 0, err
@@ -126,7 +135,7 @@ func (p *StateProcessor) ApplyTransaction(tx *types.Transaction, signer types.Si
 
 	metricsTxExecute.Mark(1)
 
-	_, gas, failed, err := p.ApplyMessageEntry(msg, statedb, bc, header, author, gp, cfg)
+	_, gas, failed, err := p.ApplyMessageEntry(msg, statedb, bc, header, author, gp, cfg, recorder)
 	if err != nil {
 		metricsTxExeFailed.Mark(1)
 		return nil, 0, err
@@ -192,7 +201,7 @@ func ProcessSenders(txs []*types.Transaction, signer types.Signer) {
 // ApplyMessageEntry is the common entry for applying a message
 // There are some common steps to do here.
 func (p *StateProcessor) ApplyMessageEntry(msg Message, statedb *state.StateDB,
-	bc ChainContext, header *types.Header, author *common.Address, gp *GasPool, cfg *vm.Config) ([]byte, uint64, bool, error) {
+	bc ChainContext, header *types.Header, author *common.Address, gp *GasPool, cfg *vm.Config, recorder local.DetailRecorder) ([]byte, uint64, bool, error) {
 	// If we don't have an explicit author (i.e. not mining), extract from the header
 	var coinbase common.Address
 	if author == nil {
@@ -200,7 +209,7 @@ func (p *StateProcessor) ApplyMessageEntry(msg Message, statedb *state.StateDB,
 	} else {
 		coinbase = *author
 	}
-	msgCtx := NewMsgContext(msg, statedb, bc, header, coinbase, gp, cfg)
+	msgCtx := NewMsgContext(msg, statedb, bc, header, coinbase, gp, cfg, recorder)
 	// First, do pre check, checks the nonce and buy the supplied gas
 	if err := msgCtx.preCheck(); err != nil {
 		return nil, 0, false, err
@@ -246,7 +255,7 @@ func (p *StateProcessor) AddEndBlockHook(name string, fn BlockHookFn) {
 	p.endBlockHooks = append(p.endBlockHooks, hookFunc{Name: name, Run: fn})
 }
 
-func (p *StateProcessor) EndBlock(chain vm.ChainReader, header *types.Header, txs []*types.Transaction, state *state.StateDB, isSeal bool) ([]*types.Receipt, [][]byte, []error) {
+func (p *StateProcessor) EndBlock(chain vm.ChainReader, header *types.Header, txs []*types.Transaction, state *state.StateDB, isSeal bool, recorder local.DetailRecorder) ([]*types.Receipt, [][]byte, []error) {
 	count := len(p.endBlockHooks)
 	if count == 0 {
 		return nil, nil, nil
@@ -255,7 +264,7 @@ func (p *StateProcessor) EndBlock(chain vm.ChainReader, header *types.Header, tx
 	var errs = make([]error, count)
 	var recs = make([]*types.Receipt, count)
 	for i, hook := range p.endBlockHooks {
-		recs[i], data[i], errs[i] = hook.Run(chain, header, txs, state, isSeal)
+		recs[i], data[i], errs[i] = hook.Run(chain, header, txs, state, isSeal, recorder)
 	}
 	logging.Info("after end block", "header", header.Number, "slashdata", hexutil.Encode(header.SlashData), "gasUsed", header.GasUsed, "gasRewards", header.GasRewards, "subsidy", header.Subsidy, "isSeal", isSeal)
 	return recs, data, errs

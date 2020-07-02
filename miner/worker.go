@@ -32,6 +32,7 @@ import (
 	"github.com/youchainhq/go-youchain/core/types"
 	"github.com/youchainhq/go-youchain/core/vm"
 	"github.com/youchainhq/go-youchain/event"
+	"github.com/youchainhq/go-youchain/local"
 	"github.com/youchainhq/go-youchain/logging"
 	"github.com/youchainhq/go-youchain/node"
 	"github.com/youchainhq/go-youchain/params"
@@ -327,7 +328,7 @@ func (w *worker) commitNewWork(interrupt *int32) {
 		return
 	}
 
-	res, _, _ := w.processor.EndBlock(w.chain, w.current.header, w.current.txs, w.current.state, true)
+	res, _, _ := w.processor.EndBlock(w.chain, w.current.header, w.current.txs, w.current.state, true, local.FakeRecorder())
 	for _, receipt := range res {
 		if receipt != nil {
 			w.current.receipts = append(w.current.receipts, res...)
@@ -411,7 +412,7 @@ func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coin
 
 func (w *worker) commitTransaction(vmCfg *vm.Config, tx *types.Transaction, coinbase *common.Address) ([]*types.Log, error) {
 	snap := w.current.state.Snapshot()
-	receipt, _, err := w.processor.ApplyTransaction(tx, w.current.signer, w.current.state, w.chain, w.current.header, coinbase, &w.current.header.GasUsed, w.current.header.GasRewards, w.current.gasPool, vmCfg)
+	receipt, _, err := w.processor.ApplyTransaction(tx, w.current.signer, w.current.state, w.chain, w.current.header, coinbase, &w.current.header.GasUsed, w.current.header.GasRewards, w.current.gasPool, vmCfg, local.FakeRecorder())
 	if err != nil {
 		log.Error("commitTransaction: apply transition failed", "err", err, "number", w.current.header.Number, "tx", tx.Hash().String())
 		w.current.state.RevertToSnapshot(snap)

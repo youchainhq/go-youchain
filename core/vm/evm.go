@@ -19,6 +19,7 @@ package vm
 import (
 	"github.com/youchainhq/go-youchain/common"
 	"github.com/youchainhq/go-youchain/crypto"
+	"github.com/youchainhq/go-youchain/local"
 	"github.com/youchainhq/go-youchain/params"
 	"math/big"
 	"sync/atomic"
@@ -85,6 +86,9 @@ type Context struct {
 	GasLimit    uint64         // Provides information for GASLIMIT
 	BlockNumber *big.Int       // Provides information for NUMBER
 	Time        *big.Int       // Provides information for TIME
+
+	// local detail recorder
+	LocalRecorder local.DetailRecorder
 }
 
 // EVM is the Ethereum Virtual Machine base object and provides
@@ -122,6 +126,9 @@ type EVM struct {
 // NewEVM returns a new EVM. The returned EVM is not thread safe and should
 // only ever be used *once*.
 func NewEVM(ctx Context, statedb StateDB, vmConfig *Config) *EVM {
+	if ctx.LocalRecorder == nil {
+		ctx.LocalRecorder = local.FakeRecorder()
+	}
 	evm := &EVM{
 		Context:      ctx,
 		StateDB:      statedb,

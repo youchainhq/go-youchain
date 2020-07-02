@@ -24,6 +24,7 @@ import (
 	"github.com/youchainhq/go-youchain/core/state"
 	"github.com/youchainhq/go-youchain/core/types"
 	"github.com/youchainhq/go-youchain/core/vm"
+	"github.com/youchainhq/go-youchain/local"
 	"github.com/youchainhq/go-youchain/params"
 )
 
@@ -56,12 +57,12 @@ type Processor interface {
 	// initial state is based. It should return the receipts generated, amount
 	// of gas used in the process and return an error if any of the internal rules
 	// failed.
-	Process(yp *params.YouParams, block *types.Block, statedb *state.StateDB, cfg vm.LocalConfig) (types.Receipts, []*types.Log, uint64, error)
+	Process(yp *params.YouParams, block *types.Block, statedb *state.StateDB, cfg vm.LocalConfig, recorder local.DetailRecorder) (*types.ProcessResult, error)
 	// ApplyTransaction attempts to apply a transaction to the given state database
 	// and uses the input parameters for its environment. It returns the receipt
 	// for the transaction, gas used and an error if the transaction failed,
 	// indicating the block was invalid.
-	ApplyTransaction(tx *types.Transaction, signer types.Signer, statedb *state.StateDB, bc ChainContext, header *types.Header, author *common.Address, usedGas *uint64, gasRewards *big.Int, gp *GasPool, cfg *vm.Config) (*types.Receipt, uint64, error)
+	ApplyTransaction(tx *types.Transaction, signer types.Signer, statedb *state.StateDB, bc ChainContext, header *types.Header, author *common.Address, usedGas *uint64, gasRewards *big.Int, gp *GasPool, cfg *vm.Config, recorder local.DetailRecorder) (*types.Receipt, uint64, error)
 	// ApplyMessage computes the new state by applying the given message
 	// against the old state within the environment.
 	//
@@ -73,10 +74,10 @@ type Processor interface {
 	// and an error if it failed. An error always indicates a core error meaning
 	// that the message would always fail for that particular state and would
 	// never be accepted within a block.
-	ApplyMessageEntry(msg Message, statedb *state.StateDB, bc ChainContext, header *types.Header, author *common.Address, gp *GasPool, cfg *vm.Config) ([]byte, uint64, bool, error)
+	ApplyMessageEntry(msg Message, statedb *state.StateDB, bc ChainContext, header *types.Header, author *common.Address, gp *GasPool, cfg *vm.Config, recorder local.DetailRecorder) ([]byte, uint64, bool, error)
 
 	// EndBlock executes some extended logic registered by other modules
-	EndBlock(chain vm.ChainReader, header *types.Header, txs []*types.Transaction, state *state.StateDB, isSeal bool) ([]*types.Receipt, [][]byte, []error)
+	EndBlock(chain vm.ChainReader, header *types.Header, txs []*types.Transaction, state *state.StateDB, isSeal bool, recorder local.DetailRecorder) ([]*types.Receipt, [][]byte, []error)
 }
 
 // IRouter is an interface for routing a transaction to a state converter.
