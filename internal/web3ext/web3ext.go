@@ -720,11 +720,14 @@ youchain._extend({
 	methods: [
 		new youchain._extend.Method({
 			name: 'getExtDetail',
-			call: 'youext_getExtDetail'
+			call: 'youext_getExtDetail',
+			params: 1,
+			inputFormatter: [youchain._extend.formatters.inputBlockNumberFormatter]
 		}),
 		new youchain._extend.Method({
 			name: 'getExtDetailByHash',
-			call: 'youext_getExtDetailByHash'
+			call: 'youext_getExtDetailByHash',
+			params: 1
 		}),
 	],
 	properties: []
