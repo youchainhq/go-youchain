@@ -181,6 +181,7 @@ func TestChamberSortition(t *testing.T) {
 }
 
 func TestHouseSortition(t *testing.T) {
+	t.SkipNow() //run on need
 	rand.Seed(time.Now().Unix())
 	nodesCount := 556
 	stakeList := make([]int64, nodesCount)
