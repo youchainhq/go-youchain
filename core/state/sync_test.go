@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/stretchr/testify/require"
 	"math/big"
 	"testing"
 
@@ -39,6 +40,8 @@ type testAccount struct {
 	balance *big.Int
 	nonce   uint64
 	code    []byte
+
+	delegationHash []byte
 }
 
 // makeTestState create a sample test state to test node-wise reconstruction.
@@ -70,8 +73,8 @@ func makeTestState() (Database, common.Hash, common.Hash, common.Hash, []*testAc
 	}
 
 	blsMgr := bls.NewBlsManager()
-	validators := make([]*Validator, 0, 3)
-	for i := 0; i < 3; i++ {
+	validators := make([]*Validator, 0, 256)
+	for i := 0; i < 256; i++ {
 		key, _ := crypto.GenerateKey()
 		blsK, _ := blsMgr.GenerateKey()
 		addr := crypto.PubkeyToAddress(key.PublicKey)
@@ -95,6 +98,8 @@ func makeTestState() (Database, common.Hash, common.Hash, common.Hash, []*testAc
 
 		//add stakingRecord
 		state.AddStakingRecord(d.address, v.MainAddress(), common.BytesToHash([]byte{0xff, byte(i)}), value)
+		// records the DelegationHash
+		accounts[i*3].delegationHash = d.DelegationsHash()
 	}
 	root, valRoot, stakingRoot, _ := state.Commit(true)
 
@@ -104,7 +109,7 @@ func makeTestState() (Database, common.Hash, common.Hash, common.Hash, []*testAc
 
 // checkStateAccounts cross references a reconstructed state with an expected
 // account array.
-func checkStateAccounts(t *testing.T, dstDb, srcDb youdb.Database, root, valRoot, stakingRoot common.Hash, accounts []*testAccount) {
+func checkStateAccounts(t *testing.T, dstDb youdb.Database, root, valRoot, stakingRoot common.Hash, accounts []*testAccount) {
 	// Check root availability and state contents
 	logging.Info("check state accounts", "root", root.String(), "valRoot", valRoot.String(), "stakingRoot", stakingRoot.String())
 	state, err := New(root, valRoot, stakingRoot, NewDatabase(dstDb))
@@ -131,35 +136,23 @@ func checkStateAccounts(t *testing.T, dstDb, srcDb youdb.Database, root, valRoot
 	fmt.Println(string(bs))
 	assert.Nil(t, err)
 	assert.NotNil(t, stat)
-	//srcState, _ := New(root, valRoot, stakingRoot, NewDatabase(srcDb))
-	//srcStatistics, _ := srcState.getValidatorsStat()
-	//assert.Equal(t, srcStatistics.GetCountOfKind(params.KindValidator), stat.GetCountOfKind(params.KindValidator))
-	//assert.Equal(t, srcStatistics.GetStakeByKind(params.KindValidator).Uint64(), stat.GetStakeByKind(params.KindValidator).Uint64())
 }
 
 // checkTrieConsistency checks that all nodes in a (sub-)trie are indeed present.
-func checkTrieConsistency(db youdb.Database, root, valRoot, stakingRoot common.Hash) error {
-	roots := []common.Hash{root, valRoot, stakingRoot}
+func checkTrieConsistency(db youdb.Database, root common.Hash) error {
 	// Create and iterate a state trie rooted in a sub-node
-	for _, r := range roots {
-		if _, err := db.Get(r.Bytes()); err != nil {
-			return nil // Consider a non existent state consistent.
-		}
+	if v, _ := db.Get(root.Bytes()); v == nil {
+		return nil // Consider a non existent state consistent.
 	}
 
-	for _, r := range roots {
-		trie, err := trie.New(r, trie.NewDatabase(db))
-		if err != nil {
-			return err
-		}
-		it := trie.NodeIterator(nil)
-		for it.Next(true) {
-		}
-		if it.Error() != nil {
-			return it.Error()
-		}
+	trie, err := trie.New(root, trie.NewDatabase(db))
+	if err != nil {
+		return err
 	}
-	return nil
+	it := trie.NodeIterator(nil)
+	for it.Next(true) {
+	}
+	return it.Error()
 }
 
 // checkStateConsistency checks that all data of a state root is present.
@@ -176,9 +169,17 @@ func checkStateConsistency(db youdb.Database, root, valRoot, stakingRoot common.
 	if err != nil {
 		return err
 	}
-	tries := []Trie{state.trie, state.valTrie, state.stakingTrie}
-	for i, _ := range roots {
-		it := trie.NewIterator(tries[i].NodeIterator(nil))
+	// check stateTrie iterator
+	it := NewNodeIterator(state)
+	for it.Next() {
+	}
+	if it.Error != nil {
+		return it.Error
+	}
+	//check other tries
+	tries := []Trie{state.valTrie, state.stakingTrie}
+	for _, tr := range tries {
+		it := trie.NewIterator(tr.NodeIterator(nil))
 		for it.Next() {
 		}
 		if it.Err != nil {
@@ -262,7 +263,7 @@ func testIterativeStateSync(t *testing.T, count int) {
 	}
 
 	// Cross check that the two states are in sync
-	checkStateAccounts(t, dstDb, srcDb.TrieDB().DiskDB(), srcRoot, srcValRoot, srcStakingRoot, srcAccounts)
+	checkStateAccounts(t, dstDb, srcRoot, srcValRoot, srcStakingRoot, srcAccounts)
 }
 
 // Tests that the trie scheduler can correctly reconstruct the state even if only
@@ -306,7 +307,7 @@ func TestIterativeDelayedStateSync(t *testing.T) {
 	}
 
 	// Cross check that the two states are in sync
-	checkStateAccounts(t, dstDb, srcDb.TrieDB().DiskDB(), srcRoot, srcValRoot, srcStakingRoot, srcAccounts)
+	checkStateAccounts(t, dstDb, srcRoot, srcValRoot, srcStakingRoot, srcAccounts)
 }
 
 // Tests that given a root hash, a trie can sync iteratively on a single thread,
@@ -361,7 +362,7 @@ func testIterativeRandomStateSync(t *testing.T, count int) {
 	}
 
 	// Cross check that the two states are in sync
-	checkStateAccounts(t, dstDb, srcDb.TrieDB().DiskDB(), srcRoot, srcValRoot, srcStakingRoot, srcAccounts)
+	checkStateAccounts(t, dstDb, srcRoot, srcValRoot, srcStakingRoot, srcAccounts)
 }
 
 // Tests that the trie scheduler can correctly reconstruct the state even if only
@@ -417,69 +418,103 @@ func TestIterativeRandomDelayedStateSync(t *testing.T) {
 	}
 
 	// Cross check that the two states are in sync
-	checkStateAccounts(t, dstDb, srcDb.TrieDB().DiskDB(), srcRoot, srcValRoot, srcStakingRoot, srcAccounts)
+	checkStateAccounts(t, dstDb, srcRoot, srcValRoot, srcStakingRoot, srcAccounts)
 }
 
 // Tests that at any point in time during a sync, only complete sub-tries are in
 // the database.
-//func TestIncompleteStateSync(t *testing.T) {
-//	// Create a random state to copy
-//	srcDb, srcRoot, srcAccounts := makeTestState()
-//
-//	checkTrieConsistency(srcDb.TrieDB().DiskDB().(youdb.Database), srcRoot)
-//
-//	// Create a destination state and sync with the scheduler
-//	dstDb := youdb.NewMemDatabase()
-//	sched := NewStateSync(srcRoot, dstDb)
-//
-//	added := []common.Hash{}
-//	queue := append([]common.Hash{}, sched.Missing(1)...)
-//	for len(queue) > 0 {
-//		// Fetch a batch of state nodes
-//		results := make([]trie.SyncResult, len(queue))
-//		for i, hash := range queue {
-//			data, err := srcDb.TrieDB().Node(hash)
-//			if err != nil {
-//				t.Fatalf("failed to retrieve node data for %x", hash)
-//			}
-//			results[i] = trie.SyncResult{Hash: hash, Data: data}
-//		}
-//		// Process each of the state nodes
-//		if _, index, err := sched.Process(results); err != nil {
-//			t.Fatalf("failed to process result #%d: %v", index, err)
-//		}
-//		if index, err := sched.Commit(dstDb); err != nil {
-//			t.Fatalf("failed to commit data #%d: %v", index, err)
-//		}
-//		for _, result := range results {
-//			added = append(added, result.Hash)
-//		}
-//		// Check that all known sub-tries added so far are complete or missing entirely.
-//	checkSubtries:
-//		for _, hash := range added {
-//			for _, acc := range srcAccounts {
-//				if hash == crypto.Keccak256Hash(acc.code) {
-//					continue checkSubtries // skip trie check of code nodes.
-//				}
-//			}
-//			// Can't use checkStateConsistency here because subtrie keys may have odd
-//			// length and crash in LeafKey.
-//			if err := checkTrieConsistency(dstDb, hash); err != nil {
-//				t.Fatalf("state inconsistent: %v", err)
-//			}
-//		}
-//		// Fetch the next batch to retrieve
-//		queue = append(queue[:0], sched.Missing(1)...)
-//	}
-//	// Sanity check that removing any node from the database is detected
-//	for _, node := range added[1:] {
-//		key := node.Bytes()
-//		value, _ := dstDb.Get(key)
-//
-//		dstDb.Delete(key)
-//		if err := checkStateConsistency(dstDb, added[0]); err == nil {
-//			t.Fatalf("trie inconsistency not caught, missing: %x", key)
-//		}
-//		dstDb.Put(key, value)
-//	}
-//}
+func TestIncompleteStateSync(t *testing.T) {
+	// Create a random state to copy
+	srcDb, srcRoot, srcValRoot, srcStakingRoot, srcAccounts := makeTestState()
+	err := checkStateConsistency(srcDb.TrieDB().DiskDB(), srcRoot, srcValRoot, srcStakingRoot)
+	require.NoError(t, err)
+	err = checkTrieConsistency(srcDb.TrieDB().DiskDB(), srcRoot)
+	require.NoError(t, err)
+
+	// Create a destination state and sync with the scheduler
+	dstDb := youdb.NewMemDatabase()
+	roots := []common.Hash{srcRoot, srcValRoot, srcStakingRoot}
+	added := make([][]common.Hash, 3)
+
+	for i, r := range roots {
+		var sched *trie.Sync
+		if i == 0 {
+			sched = NewStateSync(r, dstDb)
+		} else {
+			sched = NewSync(r, dstDb)
+		}
+		added[i] = make([]common.Hash, 0)
+
+		queue := append([]common.Hash{}, sched.Missing(1)...)
+		for len(queue) > 0 {
+			// Fetch a batch of state nodes
+			results := make([]trie.SyncResult, len(queue))
+			for i, hash := range queue {
+				data, err := srcDb.TrieDB().Node(hash)
+				if err != nil {
+					t.Fatalf("failed to retrieve node data for %x", hash)
+				}
+				results[i] = trie.SyncResult{Hash: hash, Data: data}
+			}
+			// Process each of the state nodes
+			if _, index, err := sched.Process(results); err != nil {
+				t.Fatalf("failed to process result #%d: %v", index, err)
+			}
+			batch := dstDb.NewBatch()
+			if index, err := sched.Commit(batch); err != nil {
+				t.Fatalf("failed to commit data #%d: %v", index, err)
+			}
+			batch.Write()
+			for _, result := range results {
+				added[i] = append(added[i], result.Hash)
+			}
+
+			if i == 0 {
+				// Check that all known sub-tries added so far are complete or missing entirely.
+			checkSubtries:
+				for _, hash := range added[0] {
+					for _, acc := range srcAccounts {
+						if hash == crypto.Keccak256Hash(acc.code) {
+							continue checkSubtries // skip trie check of code nodes.
+						}
+						if hash == common.BytesToHash(acc.delegationHash) {
+							continue checkSubtries
+						}
+					}
+					// Can't use checkStateConsistency here because subtrie keys may have odd
+					// length and crash in LeafKey.
+					if err := checkTrieConsistency(dstDb, hash); err != nil {
+						t.Fatalf("state inconsistent: %v", err)
+					}
+				}
+			}
+			// Fetch the next batch to retrieve
+			queue = append(queue[:0], sched.Missing(1)...)
+		}
+	}
+	// Sanity check that removing any node from the database is detected
+	for i, nodes := range added {
+		for _, node := range nodes[1:] {
+			key := node.Bytes()
+			value, _ := dstDb.Get(key)
+			dstDb.Delete(key)
+			if err := checkStateConsistency(dstDb, srcRoot, srcValRoot, srcStakingRoot); err == nil {
+				t.Fatalf("trie %d inconsistency not caught, missing: %x", i, key)
+			}
+			dstDb.Put(key, value)
+		}
+	}
+
+	// Sanity check valTrie
+	db := NewDatabase(dstDb)
+	for _, node := range added[1][1:] {
+		key := node.Bytes()
+		value, _ := dstDb.Get(key)
+
+		dstDb.Delete(key)
+		if _, err := NewVldReader(srcValRoot, db, true); err == nil {
+			t.Fatalf("trie inconsistency not caught, missing: %x", key)
+		}
+		dstDb.Put(key, value)
+	}
+}

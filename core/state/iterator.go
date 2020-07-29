@@ -35,6 +35,8 @@ type NodeIterator struct {
 	accountHash common.Hash // Hash of the node containing the account
 	codeHash    common.Hash // Hash of the contract source code
 	code        []byte      // Source code associated with a contract
+	dlgHash     common.Hash // Hash of the delegations
+	dlgBytes    []byte      // Source data of the delegations
 
 	Hash   common.Hash // Hash of the current entry being iterated (nil if not standalone)
 	Parent common.Hash // Hash of the first full ancestor node (nil if current is the root)
@@ -90,6 +92,11 @@ func (it *NodeIterator) step() error {
 		it.code = nil
 		return nil
 	}
+	// If we had delegation source previously, discard that
+	if it.dlgBytes != nil {
+		it.dlgBytes = nil
+		return nil
+	}
 	// Step to the next state trie node, terminating if we're out of nodes
 	if cont := it.stateIt.Next(true); !cont {
 		if it.stateIt.Error() != nil {
@@ -123,6 +130,13 @@ func (it *NodeIterator) step() error {
 			return fmt.Errorf("code %x: %v", account.CodeHash, err)
 		}
 	}
+	if len(account.DelegationsHash) > 0 {
+		it.dlgHash = common.BytesToHash(account.DelegationsHash)
+		it.dlgBytes, err = it.state.db.DelegationBytes(it.dlgHash)
+		if err != nil {
+			return fmt.Errorf("delegationsData %x: %v", account.DelegationsHash, err)
+		}
+	}
 	it.accountHash = it.stateIt.Parent()
 	return nil
 }
@@ -146,6 +160,8 @@ func (it *NodeIterator) retrieve() bool {
 		}
 	case it.code != nil:
 		it.Hash, it.Parent = it.codeHash, it.accountHash
+	case it.dlgBytes != nil:
+		it.Hash, it.Parent = it.dlgHash, it.accountHash
 	case it.stateIt != nil:
 		it.Hash, it.Parent = it.stateIt.Hash(), it.stateIt.Parent()
 	}

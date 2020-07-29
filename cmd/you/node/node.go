@@ -119,6 +119,7 @@ func CreateNode() *cli.App {
 	flags = append(flags, utils.DevOpFlags...)
 	flags = append(flags, utils.MetricsFlags...)
 	flags = append(flags, utils.TxPoolFlags...)
+	flags = append(flags, utils.PerfTuningFlags...)
 	app.Flags = flags
 
 	app.Commands = cli.Commands{

@@ -704,7 +704,7 @@ func (pm *ProtocolManager) handleNodeDataMsg(p *peer, msg p2p.Msg) error {
 		logging.Error("Bytes to [][]byte failed.", err)
 		return err
 	}
-	logging.Info("receive node data", "from pid", p.id, "len", len(data))
+	logging.Debug("receive node data", "from pid", p.id, "len", len(data))
 	if err := pm.downloader.DeliverNodeData(p.id, data); err != nil {
 		logging.Error("failed to deliver trie node data", "err", err)
 	}

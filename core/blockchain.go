@@ -1192,12 +1192,13 @@ func (bc *BlockChain) State() (*state.StateDB, error) {
 
 //
 func (bc *BlockChain) GetVldReader(valRoot common.Hash) (state.ValidatorReader, error) {
-	reader, err := state.NewVldReader(valRoot, bc.stateCache)
-	if err != nil && atomic.LoadInt32(&bc.onFastSyncing) == 1 {
+	onFastSyncing := atomic.LoadInt32(&bc.onFastSyncing) == 1
+	reader, err := state.NewVldReader(valRoot, bc.stateCache, onFastSyncing)
+	if err != nil && onFastSyncing {
 		logging.Debug("try fetching validator trie from vldFetcher")
 		err = bc.vldFetcher.FetchVldTrie(valRoot)
 		if err == nil {
-			reader, err = state.NewVldReader(valRoot, bc.stateCache)
+			reader, err = state.NewVldReader(valRoot, bc.stateCache, onFastSyncing)
 		}
 	}
 	return reader, err

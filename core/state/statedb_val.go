@@ -26,6 +26,7 @@ import (
 	"github.com/youchainhq/go-youchain/logging"
 	"github.com/youchainhq/go-youchain/params"
 	"github.com/youchainhq/go-youchain/rlp"
+	"github.com/youchainhq/go-youchain/trie"
 	"math/big"
 	"sync"
 )
@@ -44,11 +45,20 @@ var (
 )
 
 // NewVldReader create a new state that only with the given validator trie.
-func NewVldReader(valRoot common.Hash, db Database) (ValidatorReader, error) {
+func NewVldReader(valRoot common.Hash, db Database, checkIntegrity bool) (ValidatorReader, error) {
 	vtr, err := db.OpenTrie(valRoot)
 	if err != nil {
 		return nil, err
 	}
+	if checkIntegrity {
+		it := trie.NewIterator(vtr.NodeIterator(nil))
+		for it.Next() {
+		}
+		if it.Err != nil {
+			return nil, it.Err
+		}
+	}
+
 	st := &StateDB{
 		db: db,
 
@@ -65,10 +75,12 @@ func NewVldReader(valRoot common.Hash, db Database) (ValidatorReader, error) {
 
 	//load address list
 	if err := st.getValidatorsIndex(); err != nil {
-		logging.Warn("load validator addresses failed", "err", err, "valRoot", valRoot.String())
+		logging.Error("load validator addresses failed", "err", err, "valRoot", valRoot.String())
+		return nil, err
 	}
 	if _, err := st.getValidatorsStat(); err != nil {
-		logging.Warn("load validator stat failed", "err", err, "valRoot", valRoot.String())
+		logging.Error("load validator stat failed", "err", err, "valRoot", valRoot.String())
+		return nil, err
 	}
 
 	return st, nil
@@ -205,7 +217,6 @@ func (st *StateDB) loadValidatorsStat() (*ValidatorsStat, error) {
 	var data []byte
 	data, err := st.readStakingData(common.Address{}, validatorStatFlag)
 	if err != nil {
-		logging.Error("readStakingData failed", "err", err)
 		return nil, err
 	}
 
@@ -221,12 +232,16 @@ func (st *StateDB) loadValidatorsStat() (*ValidatorsStat, error) {
 	return stat, nil
 }
 
-func (st *StateDB) loadAllValidators() {
+func (st *StateDB) loadAllValidators() error {
 	for _, addr := range st.validatorIndex.List() {
 		if _, exists := st.validatorObjects.Load(addr); !exists {
-			st.getValidator(addr)
+			val := st.getValidator(addr)
+			if val == nil {
+				return fmt.Errorf("validator %s not exist", addr.String())
+			}
 		}
 	}
+	return nil
 }
 
 func (st *StateDB) readStakingData(addr common.Address, flag []byte) ([]byte, error) {

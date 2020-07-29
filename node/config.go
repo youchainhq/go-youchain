@@ -160,7 +160,7 @@ func (c *Config) NodeKey() *ecdsa.PrivateKey {
 	}
 	keyfile = filepath.Join(instanceDir, datadirPrivateKey)
 
-	logging.Info("keyfile final", keyfile)
+	logging.Info("keyfile final", "filepath", keyfile)
 
 	if err := crypto.SaveECDSA(keyfile, key); err != nil {
 		logging.Error(fmt.Sprintf("Failed to persist node key: %v", err))

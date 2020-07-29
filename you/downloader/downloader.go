@@ -1174,7 +1174,7 @@ func (d *Downloader) fetchParts(deliveryCh chan dataPack, deliver func(dataPack)
 // queue until the stream ends or a failure occurs.
 //
 // There are two main logic on this function: 1. try insert header chain; 2. scheduling the headers to download bodies and receipts.
-// For FullSync, we do only 1; for LightSync, we do only 2; for FastSync, we do both 1 and 2.
+// For FullSync, we do only step 2; for LightSync, we do only step 1; for FastSync, we do both 1 and 2.
 func (d *Downloader) processHeaders(origin uint64) error {
 	defer func() {
 		logging.Trace("processHeaders quit")
@@ -1550,7 +1550,7 @@ func (d *Downloader) processLightSync(latest *types.Header) error {
 			return errCanceled
 		case headers := <-d.insertedHeaderCh:
 			if len(headers) == 0 {
-				return d.handleLastBlockForLightSync(newLatest, false)
+				return d.handleLastBlockForLightSync(newLatest, false, false)
 			}
 
 			// cache the latest headers
@@ -1558,6 +1558,15 @@ func (d *Downloader) processLightSync(latest *types.Header) error {
 			li := len(headers) - 1
 			if headers[li].Number.Cmp(newLatest.Number) > 0 {
 				newLatest = headers[li]
+			}
+			// fetch some mid-term blocks
+			idx := int(params.ACoCHTFrequency - headers[0].Number.Uint64()%params.ACoCHTFrequency)
+			for ln := len(headers); idx < ln; idx += int(params.ACoCHTFrequency) {
+				header := headers[idx]
+				err := d.handleLastBlockForLightSync(header, true, header.Number.Uint64() < needVld)
+				if err != nil {
+					return err
+				}
 			}
 			// check the blocks needed to sync validators trie
 			if headers[li].Number.Uint64() >= needVld {
@@ -1585,7 +1594,7 @@ func (d *Downloader) processLightSync(latest *types.Header) error {
 	}
 }
 
-func (d *Downloader) handleLastBlockForLightSync(last *types.Header, isNotFinish bool) error {
+func (d *Downloader) handleLastBlockForLightSync(last *types.Header, isNotFinish bool, needVld bool) error {
 	// fetch the latest block
 	num := last.Number.Uint64()
 	logging.Debug("try to start the fetch of the block", "num", num)
@@ -1607,12 +1616,12 @@ func (d *Downloader) handleLastBlockForLightSync(last *types.Header, isNotFinish
 		}
 	}
 
-	logging.Debug("try sync the last staking trie", "num", last.Number, "root", last.StakingRoot.String())
+	logging.Debug("try sync the staking trie", "num", last.Number, "root", last.StakingRoot.String())
 	if err := d.fetchStakingTrie(last.StakingRoot); err != nil {
 		logging.Info("processLightSync syncing staking trie error", "err", err)
 		return err
 	}
-	logging.Debug("try sync the last state", "num", last.Number, "root", last.Root)
+	logging.Debug("try sync the state", "num", last.Number, "root", last.Root)
 	stateSync := d.syncState(last.Root)
 	// just wait. the syncing of trie can not be concurrent
 	select {
@@ -1626,6 +1635,12 @@ func (d *Downloader) handleLastBlockForLightSync(last *types.Header, isNotFinish
 		return errCancelTrieFetch
 	}
 
+	if needVld {
+		if err := d.FetchVldTrie(last.ValRoot); err != nil {
+			logging.Warn("processLightSync fetch vldtrie failed", "err", err)
+			return err
+		}
+	}
 	// wait and get the results
 	results := d.queue.Results(true)
 	if len(results) == 0 {
@@ -1635,8 +1650,10 @@ func (d *Downloader) handleLastBlockForLightSync(last *types.Header, isNotFinish
 	if err := d.commitFastSyncData(results, true); err != nil {
 		return err
 	}
-	rawdb.WriteFastSyncUndoneFlag(d.chainDb, FastLightDone)
-	logging.Trace("processLightSync done")
+	if !isNotFinish {
+		rawdb.WriteFastSyncUndoneFlag(d.chainDb, FastLightDone)
+		logging.Trace("processLightSync done")
+	}
 	return nil
 }
 

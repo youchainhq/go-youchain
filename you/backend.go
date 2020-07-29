@@ -46,6 +46,9 @@ const (
 	// The number is referenced from the size of tx pool.
 	txChanSize    = 4096
 	blockChanSize = 10
+
+	//
+	maxAuxiliaryDBCache = 128
 )
 
 type YouChain struct {
@@ -97,14 +100,14 @@ func New(config *Config, nodeConfig *node.Config) (*YouChain, error) {
 		nodeConfig = &node.DefaultConfig
 	}
 
-	chainDb, err := CreateDB(nodeConfig, "chaindata", config)
+	chainDb, err := CreateDB(nodeConfig, "chaindata", config.DatabaseCache, config.DatabaseHandles)
 	if err != nil {
 		return nil, err
 	}
 
 	var detailDb local.DetailDB
 	if nodeConfig.Watch {
-		watchDb, err := CreateDB(nodeConfig, "detaildata", config)
+		watchDb, err := CreateDB(nodeConfig, "detaildata", getAuxiliaryDBCache(config.DatabaseCache), 0)
 		if err != nil {
 			return nil, err
 		}
@@ -121,7 +124,7 @@ func New(config *Config, nodeConfig *node.Config) (*YouChain, error) {
 	logging.Info("genesisHash", "hash", genesisHash.String())
 
 	eventMux := event.NewMux()
-	voteDb, err := CreateDB(nodeConfig, "ucondata", config)
+	voteDb, err := CreateDB(nodeConfig, "ucondata", getAuxiliaryDBCache(config.DatabaseCache), 64)
 	if err != nil {
 		return nil, err
 	}
@@ -161,6 +164,13 @@ func New(config *Config, nodeConfig *node.Config) (*YouChain, error) {
 	err = you.initProtoMgr()
 
 	return you, err
+}
+
+func getAuxiliaryDBCache(stdbCache int) int {
+	if stdbCache >= maxAuxiliaryDBCache*4 {
+		return maxAuxiliaryDBCache
+	}
+	return stdbCache / 4
 }
 
 // createConsensusEngine creates the required type of consensus engine instance for an YouChain service
