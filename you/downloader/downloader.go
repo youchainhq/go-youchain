@@ -1647,7 +1647,7 @@ func (d *Downloader) handleLastBlockForLightSync(last *types.Header, isNotFinish
 		return errors.New("fetch the latest block failed")
 	}
 	logging.Debug("got light sync block results, try to commit", "count", len(results))
-	if err := d.commitFastSyncData(results, true); err != nil {
+	if err := d.commitFastSyncData(results, !isNotFinish); err != nil {
 		return err
 	}
 	if !isNotFinish {

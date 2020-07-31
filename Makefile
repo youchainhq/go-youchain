@@ -14,10 +14,10 @@ SERVICE_NAME := you
 
 # local build. let target build on the top as the default make target.
 build:
-	CGO_ENABLED=1 go build -o $(OUTPUT_DIR)/$(SERVICE_NAME) -ldflags "-s -w -X '$(PKG_DIR)/node.revision=$(GIT_COMMIT)' -X '$(PKG_DIR)/node.buildTime=$(BIN_BUILD_TIME)' -X '$(PKG_DIR)/you/node.buildBranch=$(BIN_BUILD_BRANCH)'" $(SRC_DIR)
+	CGO_ENABLED=1 go build -o $(OUTPUT_DIR)/$(SERVICE_NAME) -ldflags "-s -w -X '$(PKG_DIR)/node.revision=$(GIT_COMMIT)' -X '$(PKG_DIR)/node.buildTime=$(BIN_BUILD_TIME)' -X '$(PKG_DIR)/node.buildBranch=$(BIN_BUILD_BRANCH)'" $(SRC_DIR)
 
 install:
-	CGO_ENABLED=1 go install -ldflags "-s -w -X '$(PKG_DIR)/node.revision=$(GIT_COMMIT)' -X '$(PKG_DIR)/node.buildTime=$(BIN_BUILD_TIME)' -X '$(PKG_DIR)/you/node.buildBranch=$(BIN_BUILD_BRANCH)'" $(SRC_DIR)
+	CGO_ENABLED=1 go install -ldflags "-s -w -X '$(PKG_DIR)/node.revision=$(GIT_COMMIT)' -X '$(PKG_DIR)/node.buildTime=$(BIN_BUILD_TIME)' -X '$(PKG_DIR)/node.buildBranch=$(BIN_BUILD_BRANCH)'" $(SRC_DIR)
 
 clean:
 	go clean -cache
@@ -26,22 +26,22 @@ clean:
 # Cross Compilation Targets (using xgo2 to support gomod)
 
 build_linux:
-	xgo2 --targets=linux/amd64 --dest $(OUTPUT_DIR)/ -ldflags "-s -w -X '$(PKG_DIR)/node.revision=$(GIT_COMMIT)' -X '$(PKG_DIR)/node.buildTime=$(BIN_BUILD_TIME)' -X '$(PKG_DIR)/you/node.buildBranch=$(BIN_BUILD_BRANCH)'" --out "you" --pkg=${PKG_DIR} --goproxy=https://mirrors.aliyun.com/goproxy/ ${ROOT_DIR}
+	xgo2 --targets=linux/amd64 --dest $(OUTPUT_DIR)/ -ldflags "-s -w -X '$(PKG_DIR)/node.revision=$(GIT_COMMIT)' -X '$(PKG_DIR)/node.buildTime=$(BIN_BUILD_TIME)' -X '$(PKG_DIR)/node.buildBranch=$(BIN_BUILD_BRANCH)'" --out "you" --pkg=${PKG_DIR} --goproxy=https://mirrors.aliyun.com/goproxy/ ${ROOT_DIR}
 
 build_arm64:
-	xgo2 --targets=linux/arm64 --dest $(OUTPUT_DIR)/ -ldflags "-s -w -X '$(PKG_DIR)/node.revision=$(GIT_COMMIT)' -X '$(PKG_DIR)/node.buildTime=$(BIN_BUILD_TIME)' -X '$(PKG_DIR)/you/node.buildBranch=$(BIN_BUILD_BRANCH)'" --out "you" --pkg=${PKG_DIR} --goproxy=https://mirrors.aliyun.com/goproxy/ ${ROOT_DIR}
+	xgo2 --targets=linux/arm64 --dest $(OUTPUT_DIR)/ -ldflags "-s -w -X '$(PKG_DIR)/node.revision=$(GIT_COMMIT)' -X '$(PKG_DIR)/node.buildTime=$(BIN_BUILD_TIME)' -X '$(PKG_DIR)/node.buildBranch=$(BIN_BUILD_BRANCH)'" --out "you" --pkg=${PKG_DIR} --goproxy=https://mirrors.aliyun.com/goproxy/ ${ROOT_DIR}
 
 build_win64:
-	xgo2 --targets=windows/amd64 --dest $(OUTPUT_DIR)/ -ldflags "-s -w -X '$(PKG_DIR)/node.revision=$(GIT_COMMIT)' -X '$(PKG_DIR)/node.buildTime=$(BIN_BUILD_TIME)' -X '$(PKG_DIR)/you/node.buildBranch=$(BIN_BUILD_BRANCH)'" --out "you" --pkg=${PKG_DIR} --goproxy=https://mirrors.aliyun.com/goproxy/ ${ROOT_DIR}
+	xgo2 --targets=windows/amd64 --dest $(OUTPUT_DIR)/ -ldflags "-s -w -X '$(PKG_DIR)/node.revision=$(GIT_COMMIT)' -X '$(PKG_DIR)/node.buildTime=$(BIN_BUILD_TIME)' -X '$(PKG_DIR)/node.buildBranch=$(BIN_BUILD_BRANCH)'" --out "you" --pkg=${PKG_DIR} --goproxy=https://mirrors.aliyun.com/goproxy/ ${ROOT_DIR}
 
 build_win32:
-	xgo2 --targets=windows/386 --dest $(OUTPUT_DIR)/ -ldflags "-s -w -X '$(PKG_DIR)/node.revision=$(GIT_COMMIT)' -X '$(PKG_DIR)/node.buildTime=$(BIN_BUILD_TIME)' -X '$(PKG_DIR)/you/node.buildBranch=$(BIN_BUILD_BRANCH)'" --out "you" --pkg=${PKG_DIR} --goproxy=https://mirrors.aliyun.com/goproxy/ ${ROOT_DIR}
+	xgo2 --targets=windows/386 --dest $(OUTPUT_DIR)/ -ldflags "-s -w -X '$(PKG_DIR)/node.revision=$(GIT_COMMIT)' -X '$(PKG_DIR)/node.buildTime=$(BIN_BUILD_TIME)' -X '$(PKG_DIR)/node.buildBranch=$(BIN_BUILD_BRANCH)'" --out "you" --pkg=${PKG_DIR} --goproxy=https://mirrors.aliyun.com/goproxy/ ${ROOT_DIR}
 
 build_darwin:
-	xgo2 --targets=darwin/amd64 --dest $(OUTPUT_DIR)/ -ldflags "-s -w -X '$(PKG_DIR)/node.revision=$(GIT_COMMIT)' -X '$(PKG_DIR)/node.buildTime=$(BIN_BUILD_TIME)' -X '$(PKG_DIR)/you/node.buildBranch=$(BIN_BUILD_BRANCH)'" --out "you" --pkg=${PKG_DIR} --goproxy=https://mirrors.aliyun.com/goproxy/ ${ROOT_DIR}
+	xgo2 --targets=darwin/amd64 --dest $(OUTPUT_DIR)/ -ldflags "-s -w -X '$(PKG_DIR)/node.revision=$(GIT_COMMIT)' -X '$(PKG_DIR)/node.buildTime=$(BIN_BUILD_TIME)' -X '$(PKG_DIR)/node.buildBranch=$(BIN_BUILD_BRANCH)'" --out "you" --pkg=${PKG_DIR} --goproxy=https://mirrors.aliyun.com/goproxy/ ${ROOT_DIR}
 
 all:build
-	xgo2 --targets=linux/amd64,linux/arm64,windows/amd64,windows/386,darwin/amd64 --dest $(OUTPUT_DIR)/ -ldflags "-s -w -X '$(PKG_DIR)/node.revision=$(GIT_COMMIT)' -X '$(PKG_DIR)/node.buildTime=$(BIN_BUILD_TIME)' -X '$(PKG_DIR)/you/node.buildBranch=$(BIN_BUILD_BRANCH)'" --out "you" --pkg=${PKG_DIR} --goproxy=https://mirrors.aliyun.com/goproxy/ ${ROOT_DIR}
+	xgo2 --targets=linux/amd64,linux/arm64,windows/amd64,windows/386,darwin/amd64 --dest $(OUTPUT_DIR)/ -ldflags "-s -w -X '$(PKG_DIR)/node.revision=$(GIT_COMMIT)' -X '$(PKG_DIR)/node.buildTime=$(BIN_BUILD_TIME)' -X '$(PKG_DIR)/node.buildBranch=$(BIN_BUILD_BRANCH)'" --out "you" --pkg=${PKG_DIR} --goproxy=https://mirrors.aliyun.com/goproxy/ ${ROOT_DIR}
 
 docker:
 	docker build -t ${GROUP_NAME}/${SERVICE_NAME}:latest-build .
