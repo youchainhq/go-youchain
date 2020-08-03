@@ -1785,15 +1785,16 @@ func (bc *BlockChain) pruneOldData() {
 		if start == 0 {
 			start = 1 // Genesis can't be deleted!
 		}
-		if head > start && head-start > 2*params.ACoCHTFrequency {
+		// remain some more headers to bypass `critical value`
+		if head > start && head-start > 2*params.ACoCHTFrequency+maxSinglePruneSize {
 			defer func(oldstart uint64, st time.Time) {
 				newstart := bc.GetLightStartHeader().Number.Uint64()
 				logging.Info("pruneOldData", "oldLightStart", oldstart, "newLightStart", newstart, "elapse", time.Since(st))
 			}(start, time.Now())
 
-			logging.Trace("try to prune old data", "currentLightStart", start, "currentHead", head)
-			distance := head - 2*params.ACoCHTFrequency - start
+			distance := head - start - 2*params.ACoCHTFrequency - maxSinglePruneSize
 			sec := int(distance / maxSinglePruneSize)
+			logging.Trace("try to prune old data", "currentLightStart", start, "currentHead", head, "distance", distance, "sec", sec)
 			for i := 0; i < sec; i++ {
 				end := start + maxSinglePruneSize
 				err := bc.doPrune(start, end)

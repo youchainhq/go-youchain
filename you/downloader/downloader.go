@@ -863,7 +863,7 @@ func (d *Downloader) fetchHeaders(p *peerConnection, from, height, firstNoneAc u
 			case d.headerProcCh <- nil:
 			case <-d.cancelCh:
 			}
-			return errBadPeer
+			return errTimeout
 		}
 	}
 }
