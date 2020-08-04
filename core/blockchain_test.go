@@ -67,7 +67,7 @@ func TestEvm(t *testing.T) {
 	logging.Info(genesisHash.String())
 	// Time the insertion of the new chain.
 	// State and blocks are stored in the same DB.
-	bc, _ := NewBlockChain(db, solo.NewSolo(), nil)
+	bc, _ := NewBlockChain(db, solo.NewSolo(), nil, params.ArchiveNode, local.FakeDetailDB())
 	st, _ := bc.State()
 	vmCfg, err := PrepareVMConfig(bc, 0, vm.LocalConfig{})
 	require.NoError(t, err)

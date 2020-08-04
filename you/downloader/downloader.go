@@ -1597,15 +1597,14 @@ func (d *Downloader) processLightSync(latest *types.Header) error {
 func (d *Downloader) handleLastBlockForLightSync(last *types.Header, isNotFinish bool, needVld bool) error {
 	// fetch the latest block
 	num := last.Number.Uint64()
-	logging.Debug("try to start the fetch of the block", "num", num)
+	logging.Info("try to start the fetch of the block", "num", num)
 	// We must first reset the queue.resultOffset by calling queue.Prepare
 	d.queue.Prepare(num, d.mode)
 	// Then we can schedule headers not before num for fetching bodies and receipts.
 	// Actually we need only one block here.
-	inserts := d.queue.Schedule([]*types.Header{last}, num)
-	if len(inserts) != 1 {
-		logging.Debug("Stale headers")
-		return errBadPeer
+	ok := d.queue.ScheduleSingle(last)
+	if !ok {
+		return errors.New("schedule single header failed")
 	}
 	// wake up body and receipt fetchers
 	for _, ch := range []chan bool{d.bodyWakeCh, d.receiptWakeCh} {
@@ -1654,6 +1653,7 @@ func (d *Downloader) handleLastBlockForLightSync(last *types.Header, isNotFinish
 		rawdb.WriteFastSyncUndoneFlag(d.chainDb, FastLightDone)
 		logging.Trace("processLightSync done")
 	}
+	logging.Info("light-sync fetch block ok", "num", num)
 	return nil
 }
 

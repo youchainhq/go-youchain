@@ -145,7 +145,7 @@ func New(config *Config, nodeConfig *node.Config) (*YouChain, error) {
 		detailDb:      detailDb,
 	}
 
-	you.blockChain, err = core.NewBlockChainWithType(chainDb, you.engine, eventMux, nodeConfig.Type(), detailDb)
+	you.blockChain, err = core.NewBlockChain(chainDb, you.engine, eventMux, nodeConfig.Type(), detailDb)
 	if err != nil {
 		return nil, err
 	}

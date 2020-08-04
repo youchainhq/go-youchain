@@ -49,6 +49,7 @@ type ChainIndexerBackend interface {
 
 // ChainIndexerChain interface is used for connecting the indexer to a blockchain
 type ChainIndexerChain interface {
+	IsLight() bool
 	// CurrentHeader retrieves the latest locally known header.
 	CurrentHeader() *types.Header
 
@@ -136,7 +137,7 @@ func (c *ChainIndexer) Start(chain ChainIndexerChain) {
 	events := make(chan ChainHeadEvent, 10)
 	sub := chain.SubscribeChainHeadEvent(events)
 
-	go c.eventLoop(chain.CurrentHeader(), events, sub)
+	go c.eventLoop(chain.CurrentHeader(), chain.IsLight(), events, sub)
 }
 
 // Close tears down all goroutines belonging to the indexer and returns any error
@@ -181,19 +182,23 @@ func (c *ChainIndexer) Close() error {
 // eventLoop is a secondary - optional - event loop of the indexer which is only
 // started for the outermost indexer to push chain head events into a processing
 // queue.
-func (c *ChainIndexer) eventLoop(currentHeader *types.Header, events chan ChainHeadEvent, sub event.Subscription) {
+func (c *ChainIndexer) eventLoop(currentHeader *types.Header, isLight bool, events chan ChainHeadEvent, sub event.Subscription) {
 	// Mark the chain indexer as active, requiring an additional teardown
 	atomic.StoreUint32(&c.active, 1)
 
 	defer sub.Unsubscribe()
 
-	// Fire the initial new head event to start any outstanding processing
-	c.newHead(currentHeader.Number.Uint64(), false)
-
 	var (
-		prevHeader = currentHeader
-		prevHash   = currentHeader.Hash()
+		prevHeader *types.Header
+		prevHash   common.Hash
 	)
+	if !isLight {
+		// Fire the initial new head event to start any outstanding processing
+		c.newHead(currentHeader.Number.Uint64(), false)
+		prevHeader = currentHeader
+		prevHash = currentHeader.Hash()
+	}
+
 	for {
 		select {
 		case errc := <-c.quit:
@@ -209,7 +214,7 @@ func (c *ChainIndexer) eventLoop(currentHeader *types.Header, events chan ChainH
 				return
 			}
 			header := ev.Block.Header()
-			if header.ParentHash != prevHash {
+			if prevHeader != nil && header.ParentHash != prevHash {
 				// Reorg to the common ancestor if needed (might not exist in light sync mode, skip reorg then)
 				if rawdb.ReadCanonicalHash(c.chainDb, prevHeader.Number.Uint64()) != prevHash {
 					if h := rawdb.FindCommonAncestor(c.chainDb, prevHeader, header); h != nil {

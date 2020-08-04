@@ -80,7 +80,7 @@ func NewSimulatedBackendWithDatabase(database youdb.Database, alloc core.Genesis
 	genesis.MustCommit(database)
 	engine := solo.NewFallbackSolo(true, 0, 0, time.Second)
 	eventMux := event.NewMux()
-	blockchain, _ := core.NewBlockChainWithType(database, engine, eventMux, params.FullNode, local.NewDetailDB(nil, false))
+	blockchain, _ := core.NewBlockChain(database, engine, eventMux, params.FullNode, local.FakeDetailDB())
 	// The engine is not caravel engine, so don't need a staking module.
 	// Currently core.GenerateChain can't support caravel engine due to lots of problems.
 

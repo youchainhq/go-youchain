@@ -50,7 +50,7 @@ func TestInnerTx(t *testing.T) {
 	require.NoError(t, err, "SetupGenesisBlock")
 
 	ddb := local.NewDetailDB(db, true)
-	bc, _ := NewBlockChainWithType(db, solo.NewSolo(), nil, params.ArchiveNode, ddb)
+	bc, _ := NewBlockChain(db, solo.NewSolo(), nil, params.ArchiveNode, ddb)
 	st, _ := bc.State()
 	vmCfg, err := PrepareVMConfig(bc, 0, vm.LocalConfig{})
 	require.NoError(t, err)
@@ -99,7 +99,7 @@ func TestContractCallLib(t *testing.T) {
 	require.NoError(t, err, "SetupGenesisBlock")
 	// Time the insertion of the new chain.
 	// State and blocks are stored in the same DB.
-	bc, _ := NewBlockChain(db, solo.NewSolo(), nil)
+	bc, _ := NewBlockChain(db, solo.NewSolo(), nil, params.ArchiveNode, local.FakeDetailDB())
 	st, _ := bc.State()
 	vmCfg, err := PrepareVMConfig(bc, 0, vm.LocalConfig{})
 	require.NoError(t, err)

@@ -20,6 +20,7 @@ package node
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/youchainhq/go-youchain/local"
 	"io/ioutil"
 	"math/big"
 	"math/rand"
@@ -178,7 +179,7 @@ func TestGenContractCreation(t *testing.T) {
 	assert.NoError(t, err)
 
 	eventMux := new(event.TypeMux)
-	blockchain, _ := core.NewBlockChain(db, engine, eventMux)
+	blockchain, _ := core.NewBlockChain(db, engine, eventMux, params.ArchiveNode, local.FakeDetailDB())
 	defer blockchain.Stop()
 	txPool := core.NewTxPool(core.DefaultTxPoolConfig, blockchain)
 
@@ -208,7 +209,7 @@ func TestMinerInstance(t *testing.T) {
 		t.Fatal(genesisErr)
 	}
 	eventMux := new(event.TypeMux)
-	blockChain, _ := core.NewBlockChain(chainDb, solo.NewSolo(), eventMux)
+	blockChain, _ := core.NewBlockChain(chainDb, solo.NewSolo(), eventMux, params.ArchiveNode, local.FakeDetailDB())
 
 	priv1, _ := crypto.GenerateKey()
 	addr1 := crypto.PubkeyToAddress(priv1.PublicKey)

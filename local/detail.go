@@ -51,6 +51,10 @@ func NewDetailDB(db youdb.Database, isWatch bool) DetailDB {
 	}
 }
 
+func FakeDetailDB() DetailDB {
+	return &detailDB{}
+}
+
 func blockDetailKey(blockHash common.Hash) []byte {
 	key := make([]byte, keyLen)
 	copy(key[:2], blockDetailPrefix)

@@ -363,6 +363,37 @@ func (q *queue) Schedule(headers []*types.Header, from uint64) []*types.Header {
 	return inserts
 }
 
+// ScheduleSingle adds a specific single header to the download queue for scheduling,
+// It's used by light-sync.
+// returning whether the header is added.
+func (q *queue) ScheduleSingle(header *types.Header) bool {
+	q.lock.Lock()
+	defer q.lock.Unlock()
+
+	hash := header.Hash()
+	if header.Number == nil {
+		log.Warn("ScheduleSingle failed, number is nil.")
+		return false
+	}
+
+	// Make sure no duplicate requests are executed
+	if _, ok := q.blockTaskPool[hash]; ok {
+		log.Warn("Header already scheduled for block fetch", "number", header.Number, "hash", hash)
+		return false
+	}
+	if _, ok := q.receiptTaskPool[hash]; ok {
+		log.Warn("Header already scheduled for receipt fetch", "number", header.Number, "hash", hash)
+		return false
+	}
+	// Queue the header for content retrieval
+	q.blockTaskPool[hash] = header
+	q.blockTaskQueue.Push(header, -int64(header.Number.Uint64()))
+
+	q.receiptTaskPool[hash] = header
+	q.receiptTaskQueue.Push(header, -int64(header.Number.Uint64()))
+	return true
+}
+
 // Results retrieves and permanently removes a batch of fetch results from
 // the cache. the result slice will be empty if the queue has been closed.
 func (q *queue) Results(block bool) []*fetchResult {

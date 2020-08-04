@@ -26,6 +26,7 @@ import (
 	"github.com/youchainhq/go-youchain/core/types"
 	"github.com/youchainhq/go-youchain/crypto"
 	"github.com/youchainhq/go-youchain/event"
+	"github.com/youchainhq/go-youchain/local"
 	"github.com/youchainhq/go-youchain/p2p"
 	"github.com/youchainhq/go-youchain/p2p/enode"
 	"github.com/youchainhq/go-youchain/params"
@@ -57,7 +58,7 @@ func newTestProtocolManager(blocks int, generator func(int, *core.BlockGen), new
 			Alloc:       core.GenesisAlloc{testBank: {Balance: big.NewInt(1000000)}},
 		}
 		genesis       = gspec.MustCommit(db)
-		blockchain, _ = core.NewBlockChain(db, engine, evmux)
+		blockchain, _ = core.NewBlockChain(db, engine, evmux, params.ArchiveNode, local.FakeDetailDB())
 		//TODO: register modules to the processor if needed
 	)
 

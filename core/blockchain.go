@@ -115,17 +115,20 @@ type BlockChain struct {
 	detailDb local.DetailDB
 }
 
-func NewBlockChain(db youdb.Database, engine consensus.Engine, eventMux *event.TypeMux) (*BlockChain, error) {
+func NewBlockChain(db youdb.Database, engine consensus.Engine, eventMux *event.TypeMux, t params.NodeType, detailDb local.DetailDB) (*BlockChain, error) {
+	if !t.IsValid() {
+		return nil, fmt.Errorf("invalid node type: %d", t)
+	}
 	bc := &BlockChain{
 		db:         db,
-		nodeType:   params.ArchiveNode,
+		nodeType:   t,
 		stateCache: state.NewDatabase(db),
 		//signer:                types.MakeSigner(networkConfig, big.NewInt(0)),
 		quit:           make(chan bool),
 		engine:         engine,
 		eventMux:       eventMux,
 		fullSyncOrigin: big.NewInt(0),
-		detailDb:       local.NewDetailDB(nil, false),
+		detailDb:       detailDb,
 	}
 	_, bc.isUcon = engine.(consensus.Ucon)
 	bc.bodyCache, _ = lru.New(bodyCacheLimit)
@@ -164,19 +167,7 @@ func NewBlockChain(db youdb.Database, engine consensus.Engine, eventMux *event.T
 	go bc.update()
 	bc.chtIndexer.Start(bc)
 	bc.bltIndexer.Start(bc)
-	return bc, nil
-}
 
-func NewBlockChainWithType(db youdb.Database, engine consensus.Engine, eventMux *event.TypeMux, t params.NodeType, detailDb local.DetailDB) (*BlockChain, error) {
-	if !t.IsValid() {
-		return nil, fmt.Errorf("invalid node type: %d", t)
-	}
-	bc, err := NewBlockChain(db, engine, eventMux)
-	if err != nil {
-		return bc, err
-	}
-	bc.nodeType = t
-	bc.detailDb = detailDb
 	if bc.IsLight() {
 		hash := rawdb.ReadLightStartHeaderHash(db)
 		if hash != (common.Hash{}) {
@@ -1780,7 +1771,7 @@ func (bc *BlockChain) IsLight() bool {
 // pruneOldData prunes old block data for light-client
 func (bc *BlockChain) pruneOldData() {
 	pruneFunc := func() {
-		head := bc.CurrentHeader().Number.Uint64()
+		head := bc.CurrentBlock().NumberU64()
 		start := bc.GetLightStartHeader().Number.Uint64()
 		if start == 0 {
 			start = 1 // Genesis can't be deleted!
