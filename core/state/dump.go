@@ -87,6 +87,7 @@ type DumpWithdrawRecord struct {
 	InitialBalance   string         `json:"initialBalance"`   // tokens initially scheduled to receive at completion
 	FinalBalance     string         `json:"finalBalance"`     // tokens to receive at completion 最后实际收到的token数量
 	Finished         uint8          `json:"finished"`
+	TxHash           common.Hash    `json:"txHash"`
 }
 
 type DumpValidatorsStatItem struct {
