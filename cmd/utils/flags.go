@@ -69,11 +69,14 @@ var (
 // and also do some initialization for some business modules,
 // and then return the final node config
 func CheckSetGlobalCfg(ctx *cli.Context) (*node.Config, *you.Config, error) {
-	logging.Debug("LocalConfig", common.AsJson(nodeCfg), "<-")
+	if err := SetMetricsConfig(ctx, &nodeCfg.Metrics); err != nil {
+		return &nodeCfg, &youCfg, err
+	}
+	logging.Trace("LocalConfig", common.AsJson(nodeCfg), "<-")
 
 	//load configuration from bootnode and merge into local config
 	loadRemoteConfigWithContext(ctx, &nodeCfg)
-	logging.Debug("ComposeConfig", common.AsJson(nodeCfg), "<-")
+	logging.Trace("ComposeConfig", common.AsJson(nodeCfg), "<-")
 
 	if !nodeCfg.Type().IsValid() {
 		return &nodeCfg, &youCfg, fmt.Errorf("invalid node type %q", nodeCfg.NodeType)
@@ -86,9 +89,7 @@ func CheckSetGlobalCfg(ctx *cli.Context) (*node.Config, *you.Config, error) {
 	if err := setTxPool(ctx, &youCfg.TxPool); err != nil {
 		return &nodeCfg, &youCfg, err
 	}
-	if err := SetMetricsConfig(ctx, &nodeCfg.Metrics); err != nil {
-		return &nodeCfg, &youCfg, err
-	}
+
 	if ctx.GlobalIsSet(RPCGlobalGasCap.Name) {
 		youCfg.RPCGasCap = new(big.Int).SetUint64(ctx.GlobalUint64(RPCGlobalGasCap.Name))
 	}

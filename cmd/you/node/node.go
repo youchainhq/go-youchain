@@ -54,12 +54,10 @@ var (
 +--------------------------+`
 	ScryptN = keystore.StandardScryptN
 	ScryptP = keystore.StandardScryptP
-	logger  = logging.New()
 )
 
 func checkSetGlobalCfg(context *cli.Context) (*node.Config, *you.Config, error) {
-	logger.Info("CliConfig", "args", os.Args)
-	logger.Info("Description", "desc", context.App.Description)
+	logging.Info("Description", "desc", context.App.Description)
 	var err error
 	nodeConfig, youConfig, err := utils.CheckSetGlobalCfg(context)
 	if err != nil {
@@ -71,16 +69,16 @@ func checkSetGlobalCfg(context *cli.Context) (*node.Config, *you.Config, error) 
 	if len(nodeConfig.Genesis) > 0 {
 		genesis := &core.Genesis{}
 		genesisFile := nodeConfig.Genesis
-		logger.Info("load genesis", "file", genesisFile)
+		logging.Info("load genesis", "file", genesisFile)
 		bs, err := ioutil.ReadFile(genesisFile)
 		if err != nil {
-			logger.Error("genesis", "err", err)
+			logging.Error("genesis", "err", err)
 			return nil, nil, err
 		}
 
 		err = genesis.UnmarshalJSON(bs)
 		if err != nil {
-			logger.Error("genesis unmarshal", "err", err)
+			logging.Error("genesis unmarshal", "err", err)
 			return nil, nil, err
 		}
 		youConfig.Genesis = genesis
@@ -96,8 +94,8 @@ func checkSetGlobalCfg(context *cli.Context) (*node.Config, *you.Config, error) 
 	}
 	youConfig.NetworkId = nodeConfig.NetworkId
 
-	logger.Debug("FinalConfig", common.AsJson(nodeConfig), "<-")
-	logger.Debug("FinalYouConfig", common.AsJson(youConfig), "<-")
+	logging.Debug("FinalConfig", common.AsJson(nodeConfig), "<-")
+	logging.Debug("FinalYouConfig", common.AsJson(youConfig), "<-")
 	return nodeConfig, youConfig, nil
 }
 
@@ -210,21 +208,21 @@ func MakeFullNode(config *you.Config, nodeConfig *node.Config) *node.Node {
 }
 
 func runYc(config *you.Config, nodeConfig *node.Config, node *node.Node) (node.Service, error) {
-	logger.Info(banner)
+	logging.Info(banner)
 	keyStoreDir := filepath.Join(nodeConfig.DataDir, "keystore")
 	ks, err := keystore.NewPassphraseKeyStore(keyStoreDir, ScryptN, ScryptP)
 	if err != nil {
-		logger.Error("keystore", "err", err)
+		logging.Error("keystore", "err", err)
 		return nil, err
 	}
 	youChain, err := you.New(config, nodeConfig)
 	if err != nil {
-		logger.Error("you.new", "err", err)
+		logging.Error("you.new", "err", err)
 		return nil, err
 	}
 	accountManager, err := accounts.NewManager(ks, youChain.BlockChain().CurrentBlock().Number())
 	if err != nil {
-		logger.Error("accountmanager", "error", err)
+		logging.Error("accountmanager", "error", err)
 		return nil, err
 	}
 	youChain.SetAccountManager(accountManager)
@@ -232,7 +230,7 @@ func runYc(config *you.Config, nodeConfig *node.Config, node *node.Node) (node.S
 	container := youapi.NewContainer(youChain, accountManager, node)
 
 	if config.MinerGasPrice == nil || config.MinerGasPrice.Cmp(common.Big0()) <= 0 {
-		logger.Warn("Sanitizing invalid miner gas price", "provided", config.MinerGasPrice, "updated", you.DefaultConfig.MinerGasPrice)
+		logging.Warn("Sanitizing invalid miner gas price", "provided", config.MinerGasPrice, "updated", you.DefaultConfig.MinerGasPrice)
 		config.MinerGasPrice = new(big.Int).Set(you.DefaultConfig.MinerGasPrice)
 	}
 
