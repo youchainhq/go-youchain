@@ -398,6 +398,17 @@ func DoEstimateGas(ctx context.Context, c *Container, args CallArgs, blockNr rpc
 		if err != nil {
 			return 0, err
 		}
+		if block == nil {
+			// some "fake" miner do not really has a pending block
+			blockNr = rpc.LatestBlockNumber
+			block, err = c.BlockByNumber(ctx, blockNr)
+			if err != nil {
+				return 0, err
+			}
+			if block == nil {
+				return 0, fmt.Errorf("can not get the block %d", blockNr.Int64())
+			}
+		}
 		hi = block.GasLimit()
 	}
 
