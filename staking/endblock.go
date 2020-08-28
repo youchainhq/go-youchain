@@ -408,7 +408,7 @@ func settleValidatorRewards(ctx *context, val *state.Validator, currRound uint64
 		ctx.db.AddBalance(dlg.Delegator, reward)
 
 		//local detail
-		ctx.recorder.AddReward(valAddr, val.Coinbase, selfReward)
+		ctx.recorder.AddReward(valAddr, dlg.Delegator, reward)
 	}
 	if record.total.Cmp(record.residue) != 0 {
 		//SHOULD NOT HAPPEN, log for debug
