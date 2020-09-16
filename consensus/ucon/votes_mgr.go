@@ -116,7 +116,7 @@ func (v *VoteSta) addrVoteInfo(address common.Address, hash common.Hash) (AddrVo
 		// this is a malicious node, remove its vote from votesInfo
 		vote := v.votesInfo[priorityAndHash.Hash][address]
 		if vote != nil {
-			v.voteCounts[hash] -= vote.Votes
+			v.voteCounts[priorityAndHash.Hash] -= vote.Votes
 			delete(v.votesInfo[priorityAndHash.Hash], address)
 		}
 

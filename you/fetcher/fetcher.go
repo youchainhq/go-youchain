@@ -299,12 +299,15 @@ func (f *Fetcher) loop() {
 
 				// Create a closure of the fetch and schedule in on a new thread
 				fetchBlock, hashes := f.fetching[hashes[0]].fetchBlock, hashes
-				go func() {
+				go func(p string) {
 					for _, hash := range hashes {
 						//headerFetchMeter.Mark(1)
-						fetchBlock(hash) // Suboptimal, but protocol doesn't allow batch header retrievals
+						err := fetchBlock(hash) // Suboptimal, but protocol doesn't allow batch header retrievals
+						if err != nil {
+							logging.Warn("send requestBlock failed", "toPeer", p, "err", err)
+						}
 					}
-				}()
+				}(peer)
 			}
 			// Schedule the next fetch if blocks are still pending
 			f.rescheduleFetch(fetchTimer)
