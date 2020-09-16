@@ -404,7 +404,7 @@ func (s *trieSync) assignTasks() {
 
 		// If the peer was assigned tasks to fetch, send the network request
 		if len(req.items) > 0 {
-			logging.Info("Requesting new batch of data", "kind", s.kind, "count", len(req.items), "peer", p.id)
+			logging.Debug("Requesting new batch of data", "kind", s.kind, "count", len(req.items), "peer", p.id)
 			select {
 			case s.d.trackTrieReq <- req: //记录当前同步任务，处理超时
 				if err := req.peer.FetchNodeData(s.kind, req.items); err != nil {

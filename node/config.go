@@ -85,6 +85,7 @@ type Config struct {
 	LogLevel   int    `yaml:"loglevel" json:"log_level"`
 	LogVmodule string `yaml:"logvmodule" json:"log_vmodule"`
 	LogPath    string `yaml:"logpath" json:"log_path"`
+	Watch      bool   `yaml:"watch" json:"watch"` // enable watching some more detailed non-consensus data
 
 	BootNodeId      int    `yaml:"bootnodeid" json:"boot_nodeid"`
 	BootUconFile    string `yaml:"bootuconfile" json:"bootuconfile"`
@@ -159,7 +160,7 @@ func (c *Config) NodeKey() *ecdsa.PrivateKey {
 	}
 	keyfile = filepath.Join(instanceDir, datadirPrivateKey)
 
-	logging.Info("keyfile final", keyfile)
+	logging.Info("keyfile final", "filepath", keyfile)
 
 	if err := crypto.SaveECDSA(keyfile, key); err != nil {
 		logging.Error(fmt.Sprintf("Failed to persist node key: %v", err))

@@ -50,5 +50,10 @@ func GetAPIs(container *Container) []rpc.API {
 			Service:   NewPrivateDevApi(container),
 			Public:    false,
 		},
+		{
+			Namespace: "youext",
+			Service:   NewYouExtApi(container),
+			Public:    false,
+		},
 	}
 }

@@ -25,6 +25,7 @@ import (
 	"github.com/youchainhq/go-youchain/core/state"
 	"github.com/youchainhq/go-youchain/core/types"
 	"github.com/youchainhq/go-youchain/core/vm"
+	"github.com/youchainhq/go-youchain/local"
 	"github.com/youchainhq/go-youchain/logging"
 	"github.com/youchainhq/go-youchain/params"
 	"github.com/youchainhq/go-youchain/youdb"
@@ -98,7 +99,7 @@ func (b *BlockGen) AddTxWithChain(bc ChainContext, tx *types.Transaction) {
 	if err != nil {
 		panic(err)
 	}
-	receipt, _, err := b.processor.ApplyTransaction(tx, types.MakeSigner(b.header.Number), b.statedb, bc, b.header, &b.header.Coinbase, &b.header.GasUsed, b.header.GasRewards, b.gasPool, vmCfg)
+	receipt, _, err := b.processor.ApplyTransaction(tx, types.MakeSigner(b.header.Number), b.statedb, bc, b.header, &b.header.Coinbase, &b.header.GasUsed, b.header.GasRewards, b.gasPool, vmCfg, local.FakeRecorder())
 	if err != nil {
 		panic(err)
 	}
@@ -173,7 +174,7 @@ func generateChain(parent *types.Block, engine consensus.Engine, db youdb.Databa
 		}
 		if b.engine != nil {
 			if b.processor != nil {
-				receipts, _, _ := b.processor.EndBlock(chainreader, b.header, b.txs, statedb, true)
+				receipts, _, _ := b.processor.EndBlock(chainreader, b.header, b.txs, statedb, true, local.FakeRecorder())
 				for _, receipt := range receipts {
 					if receipt != nil {
 						b.receipts = append(b.receipts, receipt)

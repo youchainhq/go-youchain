@@ -20,6 +20,7 @@ import (
 	"github.com/youchainhq/go-youchain/common"
 	"github.com/youchainhq/go-youchain/core/types"
 	"github.com/youchainhq/go-youchain/core/vm"
+	"github.com/youchainhq/go-youchain/local"
 	"github.com/youchainhq/go-youchain/params"
 	"math/big"
 )
@@ -35,19 +36,20 @@ type ChainContext interface {
 }
 
 // NewEVMContext creates a new context for use in the EVM.
-func NewEVMContext(msg Message, header *types.Header, chain ChainContext, author common.Address) vm.Context {
+func NewEVMContext(msg Message, header *types.Header, chain ChainContext, author common.Address, recorder local.DetailRecorder) vm.Context {
 	return vm.Context{
-		CanTransfer: CanTransfer,
-		Transfer:    Transfer,
-		GetHash:     GetHashFn(header, chain),
-		Origin:      msg.From(),
-		To:          msg.To(),
-		TxHash:      msg.TxHash(),
-		Coinbase:    author,
-		BlockNumber: new(big.Int).Set(header.Number),
-		Time:        new(big.Int).SetUint64(header.Time),
-		GasLimit:    header.GasLimit,
-		GasPrice:    new(big.Int).Set(msg.GasPrice()),
+		CanTransfer:   CanTransfer,
+		Transfer:      Transfer,
+		GetHash:       GetHashFn(header, chain),
+		Origin:        msg.From(),
+		To:            msg.To(),
+		TxHash:        msg.TxHash(),
+		Coinbase:      author,
+		BlockNumber:   new(big.Int).Set(header.Number),
+		Time:          new(big.Int).SetUint64(header.Time),
+		GasLimit:      header.GasLimit,
+		GasPrice:      new(big.Int).Set(msg.GasPrice()),
+		LocalRecorder: recorder,
 	}
 }
 

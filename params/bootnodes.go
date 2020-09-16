@@ -6,9 +6,8 @@ var MainnetBootnodes = []string{
 	"enode://7eb533b94f5e28cfd2bdb198a494f2ce50464ee4246f0fcf05839fcb55631e9331170b6513ff98930d210a2a017d34f953d3637df0b8b798f7bc42dbccad9355@47.93.225.217:9283?discport=9284&nat=2&nodetype=2",
 }
 
-// TODO Bootstrap node information needs to be added when the main chain is launched
 var TestnetBootnodes = []string{
-	"enode://dede4140dc33acbd9b59cf79f1862fd28f877a553cd413fb8679c0213111035dd8d8b45a5d26df4c16ec722bea0d3f0a932c0902ba4d35f3adc35eca4bfdafc1@39.105.165.22:9283?discport=9284&nat=2&nodetype=2",
+	"enode://f3a5c1189b007add14afba2aba41e4258842da3fa6baa00458bfc9b7ad3aa72117276dfcc2c94cff8a534282a9c644c8f370d045cc57786f517a48cb5a0dab61@42.62.25.72:9283?discport=9284&nat=1&nodetype=1",
 }
 
 func LoadBootstrapNodes() []string {

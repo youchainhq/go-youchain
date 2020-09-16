@@ -29,6 +29,7 @@ import (
 var tm *TimerManager
 
 func TestNewTimerManager(t *testing.T) {
+	t.SkipNow() //run on need
 	loops := 100
 	if testing.Short() {
 		loops = 10

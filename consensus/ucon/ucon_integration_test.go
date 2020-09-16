@@ -21,6 +21,7 @@ import (
 	"crypto/ecdsa"
 	"encoding/json"
 	"fmt"
+	"github.com/youchainhq/go-youchain/local"
 	"io"
 	"io/ioutil"
 	"math/big"
@@ -531,7 +532,7 @@ func (nd *memNode) init(genesis core.Genesis) {
 	//	v, _ := db.Get(k)
 	//	fmt.Printf("%x : %x\n", k, v)
 	//}
-	chain, err := core.NewBlockChain(db, engine, nd.mux)
+	chain, err := core.NewBlockChain(db, engine, nd.mux, params.ArchiveNode, local.FakeDetailDB())
 	errorThenFatal(err, "when", "NewBlockChain")
 	//init pos table, the 'Stake' has a unit of 'YOU'
 

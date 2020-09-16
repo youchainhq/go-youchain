@@ -7,6 +7,7 @@ import (
 	"github.com/youchainhq/go-youchain/core/state"
 	"github.com/youchainhq/go-youchain/core/types"
 	"github.com/youchainhq/go-youchain/core/vm"
+	"github.com/youchainhq/go-youchain/local"
 	"github.com/youchainhq/go-youchain/logging"
 )
 
@@ -36,9 +37,10 @@ type MessageContext struct {
 	Chain        ChainContext
 	GP           *GasPool
 	Cfg          *vm.Config
+	Recorder     local.DetailRecorder
 }
 
-func NewMsgContext(msg Message, statedb *state.StateDB, bc ChainContext, header *types.Header, coinBase common.Address, gp *GasPool, cfg *vm.Config) *MessageContext {
+func NewMsgContext(msg Message, statedb *state.StateDB, bc ChainContext, header *types.Header, coinBase common.Address, gp *GasPool, cfg *vm.Config, recorder local.DetailRecorder) *MessageContext {
 	return &MessageContext{
 		Msg:          msg,
 		State:        statedb,
@@ -49,6 +51,7 @@ func NewMsgContext(msg Message, statedb *state.StateDB, bc ChainContext, header 
 		Chain:        bc,
 		GP:           gp,
 		Cfg:          cfg,
+		Recorder:     recorder,
 	}
 }
 

@@ -22,11 +22,11 @@ import (
 	"github.com/youchainhq/go-youchain/youdb"
 )
 
-func CreateDB(nodeConfig *node.Config, name string, config *Config) (youdb.Database, error) {
+func CreateDB(nodeConfig *node.Config, name string, cache, handlers int) (youdb.Database, error) {
 	if nodeConfig.DataDir == "" {
 		return youdb.NewMemDatabase(), nil
 	}
-	db, err := youdb.NewLDBDatabase(nodeConfig.ResolvePath(name), config.DatabaseCache, config.DatabaseHandles)
+	db, err := youdb.NewLDBDatabase(nodeConfig.ResolvePath(name), cache, handlers)
 	if err != nil {
 		return nil, err
 	}

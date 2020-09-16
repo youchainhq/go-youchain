@@ -850,6 +850,7 @@ func (u *WithdrawRecord) Dump() *DumpWithdrawRecord {
 		InitialBalance:   u.InitialBalance.String(),
 		FinalBalance:     u.FinalBalance.String(),
 		Finished:         u.Finished,
+		TxHash:           u.TxHash,
 	}
 }
 

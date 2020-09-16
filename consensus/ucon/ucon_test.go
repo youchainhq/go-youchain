@@ -73,7 +73,7 @@ func TestGenesisBlockHeader(t *testing.T) {
 }
 
 func TestVRF(t *testing.T) {
-	loops := uint32(20000)
+	loops := uint32(10000)
 	if testing.Short() {
 		loops = 100
 	}
@@ -92,7 +92,7 @@ func TestVRF(t *testing.T) {
 		var mtest = MakeM(failedSeed, UConStepProposal, i)
 		_, err := vrfPk.ProofToHash(mtest, proof)
 		if err != nil {
-			logging.Error("ProofToHash", "failed", i)
+			t.Error("ProofToHash", "failed", i)
 		}
 	}
 }

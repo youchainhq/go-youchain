@@ -36,8 +36,6 @@ const (
 	writePauseWarningThrottler = 1 * time.Minute
 )
 
-var OpenFileLimit = 64
-
 type LDBDatabase struct {
 	fn string      // filename for reporting
 	db *leveldb.DB // LevelDB instance

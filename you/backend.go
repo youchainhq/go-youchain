@@ -29,6 +29,7 @@ import (
 	"github.com/youchainhq/go-youchain/core/bloombits"
 	"github.com/youchainhq/go-youchain/crypto"
 	"github.com/youchainhq/go-youchain/event"
+	"github.com/youchainhq/go-youchain/local"
 	"github.com/youchainhq/go-youchain/logging"
 	"github.com/youchainhq/go-youchain/miner"
 	"github.com/youchainhq/go-youchain/node"
@@ -45,6 +46,9 @@ const (
 	// The number is referenced from the size of tx pool.
 	txChanSize    = 4096
 	blockChanSize = 10
+
+	//
+	maxAuxiliaryDBCache = 128
 )
 
 type YouChain struct {
@@ -62,8 +66,7 @@ type YouChain struct {
 
 	//DB
 	chainDb youdb.Database
-
-	voteDb youdb.Database
+	voteDb  youdb.Database
 
 	accountManager *accounts.Manager
 
@@ -74,6 +77,8 @@ type YouChain struct {
 	engine consensus.Engine
 
 	stakingMan *staking.Staking
+	//
+	detailDb local.DetailDB
 
 	eventMux *event.TypeMux
 }
@@ -95,9 +100,20 @@ func New(config *Config, nodeConfig *node.Config) (*YouChain, error) {
 		nodeConfig = &node.DefaultConfig
 	}
 
-	chainDb, err := CreateDB(nodeConfig, "chaindata", config)
+	chainDb, err := CreateDB(nodeConfig, "chaindata", config.DatabaseCache, config.DatabaseHandles)
 	if err != nil {
 		return nil, err
+	}
+
+	var detailDb local.DetailDB
+	if nodeConfig.Watch {
+		watchDb, err := CreateDB(nodeConfig, "detaildata", getAuxiliaryDBCache(config.DatabaseCache), 0)
+		if err != nil {
+			return nil, err
+		}
+		detailDb = local.NewDetailDB(watchDb, true)
+	} else {
+		detailDb = local.NewDetailDB(nil, false)
 	}
 
 	genesisHash, genesisErr := core.SetupGenesisBlock(chainDb, nodeConfig.NetworkId, config.Genesis)
@@ -108,7 +124,7 @@ func New(config *Config, nodeConfig *node.Config) (*YouChain, error) {
 	logging.Info("genesisHash", "hash", genesisHash.String())
 
 	eventMux := event.NewMux()
-	voteDb, err := CreateDB(nodeConfig, "ucondata", config)
+	voteDb, err := CreateDB(nodeConfig, "ucondata", getAuxiliaryDBCache(config.DatabaseCache), 64)
 	if err != nil {
 		return nil, err
 	}
@@ -126,9 +142,10 @@ func New(config *Config, nodeConfig *node.Config) (*YouChain, error) {
 		engine:        engine,
 		eventMux:      eventMux,
 		BloomRequests: make(chan chan *bloombits.Retrieval),
+		detailDb:      detailDb,
 	}
 
-	you.blockChain, err = core.NewBlockChainWithType(chainDb, you.engine, eventMux, nodeConfig.Type())
+	you.blockChain, err = core.NewBlockChain(chainDb, you.engine, eventMux, nodeConfig.Type(), detailDb)
 	if err != nil {
 		return nil, err
 	}
@@ -147,6 +164,13 @@ func New(config *Config, nodeConfig *node.Config) (*YouChain, error) {
 	err = you.initProtoMgr()
 
 	return you, err
+}
+
+func getAuxiliaryDBCache(stdbCache int) int {
+	if stdbCache >= maxAuxiliaryDBCache*4 {
+		return maxAuxiliaryDBCache
+	}
+	return stdbCache / 4
 }
 
 // createConsensusEngine creates the required type of consensus engine instance for an YouChain service
@@ -223,6 +247,10 @@ func (you *YouChain) Config() *Config {
 func (you *YouChain) EventMux() *event.TypeMux { return you.eventMux }
 
 func (you *YouChain) ChainDb() youdb.Database { return you.chainDb }
+
+func (you *YouChain) DetailDb() local.DetailDB {
+	return you.detailDb
+}
 
 func (you *YouChain) Protocols() []p2p.Protocol {
 	return you.protocolManager.GetSubProtocols()
@@ -367,6 +395,7 @@ func (you *YouChain) Stop() error {
 	you.chainDb.Close()
 	you.voteDb.Close()
 	you.stakingMan.Stop()
+	you.detailDb.Close()
 
 	close(you.quit)
 	return nil

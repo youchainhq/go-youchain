@@ -20,6 +20,7 @@ package node
 import (
 	"fmt"
 	"github.com/youchainhq/go-youchain/core"
+	"github.com/youchainhq/go-youchain/logging"
 	"github.com/youchainhq/go-youchain/params"
 	"github.com/youchainhq/go-youchain/youdb"
 	"io/ioutil"
@@ -107,7 +108,7 @@ func localConsole(c *cli.Context) error {
 	// Attach to the newly started node and start the JavaScript console
 	client, err := stack.Attach()
 	if err != nil {
-		logger.Error("Failed to attach to the inproc youchain", "err", err)
+		logging.Error("Failed to attach to the inproc youchain", "err", err)
 		return err
 	}
 	config := console.Config{
@@ -119,7 +120,7 @@ func localConsole(c *cli.Context) error {
 
 	console, err := console.New(config)
 	if err != nil {
-		logger.Error("Failed to start the JavaScript console", "err", err)
+		logging.Error("Failed to start the JavaScript console", "err", err)
 		return err
 	}
 	defer func() { _ = console.Stop(false) }()
@@ -146,10 +147,10 @@ func remoteConsole(ctx *cli.Context) error {
 		path := nodeConfig.DataDir
 		endpoint = fmt.Sprintf("%s/%s", path, params.DefaultIPCPath)
 	}
-	logger.Debug("try to dial ipc endpoint", "endpoint", endpoint)
+	logging.Debug("try to dial ipc endpoint", "endpoint", endpoint)
 	client, err := dialRPC(endpoint)
 	if err != nil {
-		logger.Error("Unable to attach to remote YOUChain", "err", err)
+		logging.Error("Unable to attach to remote YOUChain", "err", err)
 		return err
 	}
 	config := console.Config{
@@ -161,7 +162,7 @@ func remoteConsole(ctx *cli.Context) error {
 
 	console, err := console.New(config)
 	if err != nil {
-		logger.Error("Failed to start the JavaScript console", "err", err)
+		logging.Error("Failed to start the JavaScript console", "err", err)
 		return err
 	}
 	defer func() { _ = console.Stop(false) }()
@@ -193,13 +194,13 @@ func checkGenesis(ctx *cli.Context) error {
 	genesis := &core.Genesis{}
 	bs, err := ioutil.ReadFile(genesisFile)
 	if err != nil {
-		logger.Error("read genesis failed", "err", err)
+		logging.Error("read genesis failed", "err", err)
 		return err
 	}
 
 	err = genesis.UnmarshalJSON(bs)
 	if err != nil {
-		logger.Error("genesis unmarshal failed", "err", err)
+		logging.Error("genesis unmarshal failed", "err", err)
 		return err
 	}
 

@@ -23,6 +23,7 @@ import (
 	"github.com/youchainhq/go-youchain/core/types"
 	"github.com/youchainhq/go-youchain/crypto"
 	"github.com/youchainhq/go-youchain/event"
+	"github.com/youchainhq/go-youchain/local"
 	"github.com/youchainhq/go-youchain/params"
 	"github.com/youchainhq/go-youchain/youdb"
 	"math/big"
@@ -78,7 +79,7 @@ func TestGenerateChain(t *testing.T) {
 		}
 	})
 
-	blockchain, _ := NewBlockChain(db, solo.NewSolo(), evmux)
+	blockchain, _ := NewBlockChain(db, solo.NewSolo(), evmux, params.ArchiveNode, local.FakeDetailDB())
 	defer blockchain.Stop()
 
 	if err := blockchain.InsertChain(chain); err != nil {

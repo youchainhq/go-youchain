@@ -109,6 +109,7 @@ func (c *chainReader) VersionForRound(round uint64) (*params.YouParams, error) {
 }
 
 func TestNewMessageHandler(t *testing.T) {
+	t.SkipNow() // run on need
 	loops := 100
 	if testing.Short() {
 		loops = 10

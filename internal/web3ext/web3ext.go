@@ -27,6 +27,7 @@ var Modules = map[string]string{
 	"rpc":      RpcJs,
 	"txpool":   TxpoolJs,
 	"dev":      DevJs,
+	"youext":   YouExtJs,
 }
 
 const AdminJs = `
@@ -710,5 +711,25 @@ youchain._extend({
 			}
 		}),
 	]
+});
+`
+
+const YouExtJs = `
+youchain._extend({
+	property: 'youext',
+	methods: [
+		new youchain._extend.Method({
+			name: 'getExtDetail',
+			call: 'youext_getExtDetail',
+			params: 1,
+			inputFormatter: [youchain._extend.formatters.inputBlockNumberFormatter]
+		}),
+		new youchain._extend.Method({
+			name: 'getExtDetailByHash',
+			call: 'youext_getExtDetailByHash',
+			params: 1
+		}),
+	],
+	properties: []
 });
 `

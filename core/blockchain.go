@@ -33,6 +33,7 @@ import (
 	"github.com/youchainhq/go-youchain/core/types"
 	"github.com/youchainhq/go-youchain/core/vm"
 	"github.com/youchainhq/go-youchain/event"
+	"github.com/youchainhq/go-youchain/local"
 	"github.com/youchainhq/go-youchain/logging"
 	"github.com/youchainhq/go-youchain/params"
 	"github.com/youchainhq/go-youchain/rlp"
@@ -110,18 +111,24 @@ type BlockChain struct {
 
 	onFastSyncing int32 // set to 1 when currently is on fast syncing. must be called atomically
 	vldFetcher    VldFetcher
+
+	detailDb local.DetailDB
 }
 
-func NewBlockChain(db youdb.Database, engine consensus.Engine, eventMux *event.TypeMux) (*BlockChain, error) {
+func NewBlockChain(db youdb.Database, engine consensus.Engine, eventMux *event.TypeMux, t params.NodeType, detailDb local.DetailDB) (*BlockChain, error) {
+	if !t.IsValid() {
+		return nil, fmt.Errorf("invalid node type: %d", t)
+	}
 	bc := &BlockChain{
 		db:         db,
-		nodeType:   params.ArchiveNode,
+		nodeType:   t,
 		stateCache: state.NewDatabase(db),
 		//signer:                types.MakeSigner(networkConfig, big.NewInt(0)),
 		quit:           make(chan bool),
 		engine:         engine,
 		eventMux:       eventMux,
 		fullSyncOrigin: big.NewInt(0),
+		detailDb:       detailDb,
 	}
 	_, bc.isUcon = engine.(consensus.Ucon)
 	bc.bodyCache, _ = lru.New(bodyCacheLimit)
@@ -160,18 +167,7 @@ func NewBlockChain(db youdb.Database, engine consensus.Engine, eventMux *event.T
 	go bc.update()
 	bc.chtIndexer.Start(bc)
 	bc.bltIndexer.Start(bc)
-	return bc, nil
-}
 
-func NewBlockChainWithType(db youdb.Database, engine consensus.Engine, eventMux *event.TypeMux, t params.NodeType) (*BlockChain, error) {
-	if !t.IsValid() {
-		return nil, fmt.Errorf("invalid node type: %d", t)
-	}
-	bc, err := NewBlockChain(db, engine, eventMux)
-	if err != nil {
-		return bc, err
-	}
-	bc.nodeType = t
 	if bc.IsLight() {
 		hash := rawdb.ReadLightStartHeaderHash(db)
 		if hash != (common.Hash{}) {
@@ -389,30 +385,30 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			return i, events, coalescedLogs, err
 		}
 
-		receipts, logs, usedGas, err := bc.processor.Process(yp, block, stateDb, bc.vmConfig)
+		result, err := bc.processor.Process(yp, block, stateDb, bc.vmConfig, bc.detailDb.NewRecorder())
 		if err != nil {
 			logging.Error("insertChain Process failed.", "number", block.NumberU64())
-			bc.reportBlock(block, receipts, err)
+			bc.reportBlock(block, nil, err)
 			return i, events, coalescedLogs, err
 		}
 
-		err = bc.Validator().ValidateState(block, parent, stateDb, receipts, usedGas)
+		err = bc.Validator().ValidateState(block, parent, stateDb, result.Recs, result.UsedGas)
 		if err != nil {
-			bc.reportBlock(block, receipts, err)
+			bc.reportBlock(block, result.Recs, err)
 			return i, events, coalescedLogs, err
 		}
 
 		// process forks
-		if err := bc.WriteBlockWithState(block, stateDb, receipts); err != nil {
+		if err := bc.WriteBlockWithState(block, stateDb, result.Recs); err != nil {
 			return i, events, coalescedLogs, err
 		}
-
 		logging.Info("insertChain WriteBlockWithState:", "number", block.NumberU64())
+		bc.detailDb.WriteDetail(result.ExDetail)
 
 		lastCanon = block
 
-		coalescedLogs = append(coalescedLogs, logs...)
-		events = append(events, ChainEvent{block, block.Hash(), logs})
+		coalescedLogs = append(coalescedLogs, result.Logs...)
+		events = append(events, ChainEvent{block, block.Hash(), result.Logs})
 
 		metricsBlockElapsedGauge.Update(int64(block.Time() - parent.Time()))
 		metricsBlockHeightGauge.Update(int64(block.NumberU64()))
@@ -703,13 +699,13 @@ func (bc *BlockChain) verifyAllSideChainBlocks(chain types.Blocks) (err error) {
 		//verify block.
 		// Notice: Here we can't use bc.Validator().ValidateBody(b), because ValidateBody will check if the parent block is has state in canonical chain.
 		// just to process the transactions and then validate the result
-		receipts, _, usedGas, err := bc.processor.Process(yp, b, stateDb, bc.vmConfig)
+		result, err := bc.processor.Process(yp, b, stateDb, bc.vmConfig, bc.detailDb.NewRecorder())
 		if err != nil {
 			logging.Error("verifyAllSideChainBlocks Process failed.", "number", b.NumberU64())
 			return err
 		}
 
-		err = bc.Validator().ValidateState(b, parents[i], stateDb, receipts, usedGas)
+		err = bc.Validator().ValidateState(b, parents[i], stateDb, result.Recs, result.UsedGas)
 		if err != nil {
 			return err
 		}
@@ -1187,12 +1183,13 @@ func (bc *BlockChain) State() (*state.StateDB, error) {
 
 //
 func (bc *BlockChain) GetVldReader(valRoot common.Hash) (state.ValidatorReader, error) {
-	reader, err := state.NewVldReader(valRoot, bc.stateCache)
-	if err != nil && atomic.LoadInt32(&bc.onFastSyncing) == 1 {
+	onFastSyncing := atomic.LoadInt32(&bc.onFastSyncing) == 1
+	reader, err := state.NewVldReader(valRoot, bc.stateCache, onFastSyncing)
+	if err != nil && onFastSyncing {
 		logging.Debug("try fetching validator trie from vldFetcher")
 		err = bc.vldFetcher.FetchVldTrie(valRoot)
 		if err == nil {
-			reader, err = state.NewVldReader(valRoot, bc.stateCache)
+			reader, err = state.NewVldReader(valRoot, bc.stateCache, onFastSyncing)
 		}
 	}
 	return reader, err
@@ -1774,20 +1771,21 @@ func (bc *BlockChain) IsLight() bool {
 // pruneOldData prunes old block data for light-client
 func (bc *BlockChain) pruneOldData() {
 	pruneFunc := func() {
-		head := bc.CurrentHeader().Number.Uint64()
+		head := bc.CurrentBlock().NumberU64()
 		start := bc.GetLightStartHeader().Number.Uint64()
 		if start == 0 {
 			start = 1 // Genesis can't be deleted!
 		}
-		if head > start && head-start > 2*params.ACoCHTFrequency {
+		// remain some more headers to bypass `critical value`
+		if head > start && head-start > 2*params.ACoCHTFrequency+maxSinglePruneSize {
 			defer func(oldstart uint64, st time.Time) {
 				newstart := bc.GetLightStartHeader().Number.Uint64()
 				logging.Info("pruneOldData", "oldLightStart", oldstart, "newLightStart", newstart, "elapse", time.Since(st))
 			}(start, time.Now())
 
-			logging.Trace("try to prune old data", "currentLightStart", start, "currentHead", head)
-			distance := head - 2*params.ACoCHTFrequency - start
+			distance := head - start - 2*params.ACoCHTFrequency - maxSinglePruneSize
 			sec := int(distance / maxSinglePruneSize)
+			logging.Trace("try to prune old data", "currentLightStart", start, "currentHead", head, "distance", distance, "sec", sec)
 			for i := 0; i < sec; i++ {
 				end := start + maxSinglePruneSize
 				err := bc.doPrune(start, end)

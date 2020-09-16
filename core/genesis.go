@@ -217,8 +217,8 @@ func SetupGenesisBlock(db youdb.Database, networkId uint64, genesis *Genesis) (g
 		}
 
 		logging.Info("genesis.Commit", "new block.Hash", block.Hash().String(), "root", block.Root().String(), "valRoot", block.ValRoot().String())
-		logging.Info("new block.Header", common.AsJson(block.Header()), "<")
-		logging.Info("new genesis", common.AsJson(genesis), "<")
+		logging.Trace("new block.Header", common.AsJson(block.Header()), "<")
+		logging.Trace("new genesis", common.AsJson(genesis), "<")
 		return block.Hash(), err
 	}
 

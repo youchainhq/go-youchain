@@ -18,6 +18,7 @@
 package core
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/stretchr/testify/require"
 	"github.com/youchainhq/go-youchain/common"
@@ -26,10 +27,63 @@ import (
 	"github.com/youchainhq/go-youchain/core/types"
 	"github.com/youchainhq/go-youchain/core/vm"
 	"github.com/youchainhq/go-youchain/crypto"
+	"github.com/youchainhq/go-youchain/local"
+	"github.com/youchainhq/go-youchain/logging"
+	"github.com/youchainhq/go-youchain/params"
 	"github.com/youchainhq/go-youchain/youdb"
 	"math/big"
 	"testing"
 )
+
+func TestInnerTx(t *testing.T) {
+	logging.Verbosity(logging.LvlWarn)
+	acc1Key, _ := crypto.HexToECDSA("372f86826d3a107bd342aa8713081514e97d7dcc8c6f4168a4f8bc6a6c6fa358")
+	//contract built-in owner
+	acc1Addr := crypto.PubkeyToAddress(acc1Key.PublicKey) //0x59677fD68ec54e43aD4319D915f81748B5a6Ff8B
+	genesis := DefaultGenesisBlock()
+	balance, ok := new(big.Int).SetString("100000000000000000000000", 10)
+	require.True(t, ok)
+	genesis.Alloc[acc1Addr] = GenesisAccount{Balance: balance}
+
+	db := youdb.NewMemDatabase()
+	_, err := SetupGenesisBlock(db, 1, genesis)
+	require.NoError(t, err, "SetupGenesisBlock")
+
+	ddb := local.NewDetailDB(db, true)
+	bc, _ := NewBlockChain(db, solo.NewSolo(), nil, params.ArchiveNode, ddb)
+	st, _ := bc.State()
+	vmCfg, err := PrepareVMConfig(bc, 0, vm.LocalConfig{})
+	require.NoError(t, err)
+
+	// lib
+	code := innerTxContractCode()
+	caddr := deploy(t, bc, st, vmCfg, acc1Addr, code)
+
+	//make tx
+	recorder := ddb.NewRecorder()
+	hash := bc.CurrentHeader().Hash()
+	recorder.Init(hash, bc.CurrentHeader().Number.Uint64())
+
+	gp := new(GasPool).AddGas(100000000000)
+	gasPrice := big.NewInt(1000000000)
+	msg := types.NewMessage(acc1Addr, &caddr, st.GetNonce(acc1Addr), big.NewInt(2000), uint64(50000000), big.NewInt(1000000000), common.Hex2Bytes("88b45046"), false)
+	msg.SetHash(common.Hash{0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff}) //fake hash
+	_, usedGas, failed, err := bc.Processor().ApplyMessageEntry(msg, st, bc, bc.CurrentHeader(), nil, gp, vmCfg, recorder)
+	fmt.Println("usedGas", usedGas, "token", new(big.Int).Mul(gasPrice, new(big.Int).SetUint64(usedGas)))
+	require.NoError(t, err)
+	require.False(t, failed)
+
+	d := recorder.Finalize()
+	ddb.WriteDetail(d)
+
+	require.NotNil(t, d)
+	require.Equal(t, 1, len(d.InnerTxs))
+	require.Equal(t, 0, d.InnerTxs[0].Value.Cmp(big.NewInt(1000)))
+
+	bs, err := json.Marshal(d)
+	require.NoError(t, err)
+	fmt.Println(string(bs))
+}
 
 func TestContractCallLib(t *testing.T) {
 	acc1Key, _ := crypto.HexToECDSA("372f86826d3a107bd342aa8713081514e97d7dcc8c6f4168a4f8bc6a6c6fa358")
@@ -45,7 +99,7 @@ func TestContractCallLib(t *testing.T) {
 	require.NoError(t, err, "SetupGenesisBlock")
 	// Time the insertion of the new chain.
 	// State and blocks are stored in the same DB.
-	bc, _ := NewBlockChain(db, solo.NewSolo(), nil)
+	bc, _ := NewBlockChain(db, solo.NewSolo(), nil, params.ArchiveNode, local.FakeDetailDB())
 	st, _ := bc.State()
 	vmCfg, err := PrepareVMConfig(bc, 0, vm.LocalConfig{})
 	require.NoError(t, err)
@@ -72,7 +126,7 @@ func deploy(t *testing.T, bc *BlockChain, st *state.StateDB, vmCfg *vm.Config, f
 	callerNonce := st.GetNonce(from)
 	gasPrice := big.NewInt(1000000000)
 	msg := types.NewMessage(from, nil, callerNonce, big.NewInt(0), uint64(50000000), gasPrice, code, true)
-	_, usedGas, failed, err := bc.Processor().ApplyMessageEntry(msg, st, bc, bc.CurrentHeader(), nil, gp, vmCfg)
+	_, usedGas, failed, err := bc.Processor().ApplyMessageEntry(msg, st, bc, bc.CurrentHeader(), nil, gp, vmCfg, bc.detailDb.NewRecorder())
 	fmt.Println("usedGas", usedGas, "token", new(big.Int).Mul(gasPrice, new(big.Int).SetUint64(usedGas)))
 	require.NoError(t, err)
 	require.False(t, failed)
@@ -87,7 +141,7 @@ func call(t *testing.T, bc *BlockChain, st *state.StateDB, vmCfg *vm.Config, fro
 	gp := new(GasPool).AddGas(100000000000)
 	gasPrice := big.NewInt(1000000000)
 	msg := types.NewMessage(from, &to, 0, big.NewInt(0), uint64(50000000), big.NewInt(1000000000), data, false)
-	ret, usedGas, failed, err := bc.Processor().ApplyMessageEntry(msg, st, bc, bc.CurrentHeader(), nil, gp, vmCfg)
+	ret, usedGas, failed, err := bc.Processor().ApplyMessageEntry(msg, st, bc, bc.CurrentHeader(), nil, gp, vmCfg, local.FakeRecorder())
 	fmt.Println("usedGas", usedGas, "token", new(big.Int).Mul(gasPrice, new(big.Int).SetUint64(usedGas)))
 	require.NoError(t, err)
 	require.False(t, failed)
@@ -140,4 +194,20 @@ func contCode() []byte {
 
 	// for --libraries ConvertLib:0x9e7361EB4749D45EDf4a048b3E87595F97054A77
 	return common.Hex2Bytes("608060405234801561001057600080fd5b506127106000803273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020019081526020016000208190555061047f806100656000396000f30060806040526004361061003a5760003560e01c63ffffffff1680637bd703e81461003f57806390b98a11146100a4578063f8b2cb4f14610109575b600080fd5b34801561004b57600080fd5b50610080600480360381019080803573ffffffffffffffffffffffffffffffffffffffff169060200190929190505050610160565b60405180848152602001838152602001828152602001935050505060405180910390f35b3480156100b057600080fd5b506100ef600480360381019080803573ffffffffffffffffffffffffffffffffffffffff169060200190929190803590602001909291905050506102b2565b604051808215151515815260200191505060405180910390f35b34801561011557600080fd5b5061014a600480360381019080803573ffffffffffffffffffffffffffffffffffffffff16906020019092919050505061040b565b6040518082815260200191505060405180910390f35b6000806000806000806101728761040b565b9250739e7361eb4749d45edf4a048b3e87595f97054a776396e4ee3d8460026040518363ffffffff1660e01b8152600401808381526020018281526020019250505060206040518083038186803b1580156101cc57600080fd5b505af41580156101e0573d6000803e3d6000fd5b505050506040513d60208110156101f657600080fd5b81019080805190602001909291905050509150739e7361eb4749d45edf4a048b3e87595f97054a776396e4ee3d600360076040518363ffffffff1660e01b8152600401808381526020018281526020019250505060206040518083038186803b15801561026257600080fd5b505af4158015610276573d6000803e3d6000fd5b505050506040513d602081101561028c57600080fd5b810190808051906020019092919050505090508282829550955095505050509193909250565b6000816000803373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020019081526020016000205410156103035760009050610405565b816000803373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002060008282540392505081905550816000808573ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001908152602001600020600082825401925050819055508273ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff167fddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef846040518082815260200191505060405180910390a3600190505b92915050565b60008060008373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020019081526020016000205490509190505600a165627a7a72305820fd4e2d9a9165bb628168b6f86d1d30c9a13fd0ff297c6cda65b7c9be53d7cb8c0029")
+}
+
+func innerTxContractCode() []byte {
+	/*
+		contract InnerTx {
+		    function income() public payable {
+		        require(msg.value > 0);
+		        uint256 tax = msg.value/2;
+		        address payable g = 0x000000000000000000000000000000000000000A;
+		        g.transfer(tax);
+		    }
+		}
+	*/
+	// Function signatures:
+	// 88b45046: income()
+	return common.Hex2Bytes("608060405234801561001057600080fd5b5060c88061001f6000396000f3fe608060405260043610601c5760003560e01c806388b45046146021575b600080fd5b60276029565b005b60003411603557600080fd5b600060023481604057fe5b0490506000600a90508073ffffffffffffffffffffffffffffffffffffffff166108fc839081150290604051600060405180830381858888f19350505050158015608e573d6000803e3d6000fd5b50505056fea265627a7a723158209fe82d1174ff41a25683650ec36cec1525df66eab6ad70f4184d0ee98356e98364736f6c63430005100032")
 }

@@ -158,10 +158,11 @@ func New(root, valRoot, stakingRoot common.Hash, db Database) (*StateDB, error) 
 
 	//load address list
 	if err := st.getValidatorsIndex(); err != nil {
-		logging.Warn("load validator addresses failed", "err", err, "root", root.String())
+		logging.Error("load validator index failed", "err", err, "root", root.String())
+		return nil, fmt.Errorf("load validator index failed, err=%v", err)
 	}
 	if _, err := st.getValidatorsStat(); err != nil {
-		logging.Warn("load validator stat failed", "err", err, "root", root.String())
+		return nil, fmt.Errorf("load validator stats failed, err=%v", err)
 	}
 
 	if err := st.loadPendingRelationship(); err != nil {

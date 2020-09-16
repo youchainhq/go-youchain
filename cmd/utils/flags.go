@@ -19,6 +19,7 @@ package utils
 
 import (
 	"fmt"
+	"github.com/youchainhq/go-youchain/common/fdlimit"
 	"io"
 	"math/big"
 	"os"
@@ -68,11 +69,14 @@ var (
 // and also do some initialization for some business modules,
 // and then return the final node config
 func CheckSetGlobalCfg(ctx *cli.Context) (*node.Config, *you.Config, error) {
-	logging.Debug("LocalConfig", common.AsJson(nodeCfg), "<-")
+	if err := SetMetricsConfig(ctx, &nodeCfg.Metrics); err != nil {
+		return &nodeCfg, &youCfg, err
+	}
+	logging.Trace("LocalConfig", common.AsJson(nodeCfg), "<-")
 
 	//load configuration from bootnode and merge into local config
 	loadRemoteConfigWithContext(ctx, &nodeCfg)
-	logging.Debug("ComposeConfig", common.AsJson(nodeCfg), "<-")
+	logging.Trace("ComposeConfig", common.AsJson(nodeCfg), "<-")
 
 	if !nodeCfg.Type().IsValid() {
 		return &nodeCfg, &youCfg, fmt.Errorf("invalid node type %q", nodeCfg.NodeType)
@@ -85,12 +89,14 @@ func CheckSetGlobalCfg(ctx *cli.Context) (*node.Config, *you.Config, error) {
 	if err := setTxPool(ctx, &youCfg.TxPool); err != nil {
 		return &nodeCfg, &youCfg, err
 	}
-	if err := SetMetricsConfig(ctx, &nodeCfg.Metrics); err != nil {
-		return &nodeCfg, &youCfg, err
-	}
+
 	if ctx.GlobalIsSet(RPCGlobalGasCap.Name) {
 		youCfg.RPCGasCap = new(big.Int).SetUint64(ctx.GlobalUint64(RPCGlobalGasCap.Name))
 	}
+	if err := setPerfTuningConfig(ctx, nodeCfg.Type(), &youCfg); err != nil {
+		return &nodeCfg, &youCfg, err
+	}
+	youCfg.DatabaseHandles = makeDatabaseHandles()
 	return &nodeCfg, &youCfg, nil
 }
 
@@ -188,4 +194,18 @@ func Fatalf(format string, args ...interface{}) {
 	}
 	fmt.Fprintf(w, "Fatal: "+format+"\n", args...)
 	os.Exit(1)
+}
+
+// makeDatabaseHandles raises out the number of allowed file handles per process
+// for Geth and returns half of the allowance to assign to the database.
+func makeDatabaseHandles() int {
+	limit, err := fdlimit.Maximum()
+	if err != nil {
+		Fatalf("Failed to retrieve file descriptor allowance: %v", err)
+	}
+	raised, err := fdlimit.Raise(uint64(limit))
+	if err != nil {
+		Fatalf("Failed to raise file descriptor allowance: %v", err)
+	}
+	return int(raised / 2) // Leave half for networking and other stuff
 }

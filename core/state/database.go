@@ -54,6 +54,9 @@ type Database interface {
 	// ContractCodeSize retrieves a particular contracts code's size.
 	ContractCodeSize(addrHash, codeHash common.Hash) (int, error)
 
+	// DelegationBytes retrieves a particular
+	DelegationBytes(dlgHash common.Hash) ([]byte, error)
+
 	// TrieDB retrieves the low level trie database used for data storage.
 	TrieDB() *trie.Database
 }
@@ -142,6 +145,10 @@ func (db *cachingDB) ContractCode(addrHash, codeHash common.Hash) ([]byte, error
 		db.codeSizeCache.Add(codeHash, len(code))
 	}
 	return code, err
+}
+
+func (db *cachingDB) DelegationBytes(dlgHash common.Hash) ([]byte, error) {
+	return db.db.Node(dlgHash)
 }
 
 // ContractCodeSize retrieves a particular contracts code's size.

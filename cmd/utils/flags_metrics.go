@@ -38,6 +38,7 @@ var (
 		cli.IntFlag{Name: "log.level", Value: int(logging.LvlInfo), Destination: &nodeCfg.LogLevel},
 		cli.StringFlag{Name: "log.vmodule", Destination: &nodeCfg.LogVmodule},
 		cli.StringFlag{Name: "log.path", Destination: &nodeCfg.LogPath},
+		cli.BoolFlag{Name: "watch", Destination: &nodeCfg.Watch, Usage: "enable watching some more detailed non-consensus data, and will just stored locally in a independent database."},
 
 		//use in metrics/metrics.go
 		cli.BoolFlag{Name: "metrics", Destination: &nodeCfg.Metrics.Metrics},

@@ -26,6 +26,7 @@ import (
 	"github.com/youchainhq/go-youchain/core/types"
 	"github.com/youchainhq/go-youchain/core/vm"
 	"github.com/youchainhq/go-youchain/crypto"
+	"github.com/youchainhq/go-youchain/local"
 	"github.com/youchainhq/go-youchain/logging"
 	"github.com/youchainhq/go-youchain/params"
 	"github.com/youchainhq/go-youchain/youdb"
@@ -66,7 +67,7 @@ func TestEvm(t *testing.T) {
 	logging.Info(genesisHash.String())
 	// Time the insertion of the new chain.
 	// State and blocks are stored in the same DB.
-	bc, _ := NewBlockChain(db, solo.NewSolo(), nil)
+	bc, _ := NewBlockChain(db, solo.NewSolo(), nil, params.ArchiveNode, local.FakeDetailDB())
 	st, _ := bc.State()
 	vmCfg, err := PrepareVMConfig(bc, 0, vm.LocalConfig{})
 	require.NoError(t, err)
@@ -81,7 +82,7 @@ func TestEvm(t *testing.T) {
 		tx, err := types.SignTx(unsignedTx, signer, acc1Key)
 		assert.Nil(t, err)
 		msg, _ := tx.AsMessage(signer)
-		ret, usedGas, _, err := bc.Processor().ApplyMessageEntry(msg, st, bc, bc.CurrentHeader(), &acc1Addr, gp, vmCfg)
+		ret, usedGas, _, err := bc.Processor().ApplyMessageEntry(msg, st, bc, bc.CurrentHeader(), &acc1Addr, gp, vmCfg, local.FakeRecorder())
 		assert.Nil(t, err)
 		logging.Info("codes", "ret", common.Bytes2Hex(ret), "usedGas", usedGas)
 		logging.Info("codes", "acc1Addr", acc1Addr.String(), "balance", st.GetBalance(acc1Addr).String())

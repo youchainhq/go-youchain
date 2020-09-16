@@ -28,6 +28,7 @@ import (
 	"github.com/youchainhq/go-youchain/core/state"
 	"github.com/youchainhq/go-youchain/core/types"
 	"github.com/youchainhq/go-youchain/core/vm"
+	"github.com/youchainhq/go-youchain/local"
 	"github.com/youchainhq/go-youchain/logging"
 	"github.com/youchainhq/go-youchain/params"
 )
@@ -37,9 +38,18 @@ type tempRewardsRecord struct {
 	total, per, residue *big.Int
 }
 
+type context struct {
+	chain    vm.ChainReader
+	config   *params.YouParams
+	db       *state.StateDB
+	header   *types.Header
+	receipt  *types.Receipt
+	recorder local.DetailRecorder
+}
+
 //EndBlock process slashing and rewarding for block
 func EndBlock(staking *Staking) core.BlockHookFn {
-	return func(chain vm.ChainReader, header *types.Header, txs []*types.Transaction, db *state.StateDB, isSeal bool) (*types.Receipt, []byte, error) {
+	return func(chain vm.ChainReader, header *types.Header, txs []*types.Transaction, db *state.StateDB, isSeal bool, recorder local.DetailRecorder) (*types.Receipt, []byte, error) {
 		if header == nil {
 			return nil, nil, errHeaderRequired
 		}
@@ -64,23 +74,31 @@ func EndBlock(staking *Staking) core.BlockHookFn {
 		if err != nil {
 			return nil, nil, fmt.Errorf("find YouVersion parameters error: %v", err)
 		}
+		ctx := &context{
+			chain:    chain,
+			config:   currConfig,
+			db:       db,
+			header:   header,
+			receipt:  receipt,
+			recorder: recorder,
+		}
 
 		// slashing
 		if isSeal {
-			if _, _, _, err = staking.slashing(currConfig, chain, header, receipt, db); err != nil {
+			if _, _, _, err = staking.slashing(ctx); err != nil {
 				log.Error("slashing", "height", header.Number, "err", err)
 			}
 		} else {
-			if _, _, _, err = staking.replaySlashing(currConfig, chain, header, receipt, db); err != nil {
+			if _, _, _, err = staking.replaySlashing(ctx); err != nil {
 				log.Error("replaySlashing", "height", header.Number, "err", err)
 			}
 		}
 
 		// rewards to pool for every block
-		rewardsToPool(currConfig, db, header, receipt)
+		rewardsToPool(ctx)
 
 		// process the staking business on the end of a period
-		if err = staking.endStakingPeriod(currConfig, db, header, txs, receipt); err != nil {
+		if err = staking.endStakingPeriod(ctx, txs); err != nil {
 			log.Error("endStakingPeriod failed", "height", header.Number, "err", err)
 		}
 
@@ -95,9 +113,9 @@ func EndBlock(staking *Staking) core.BlockHookFn {
 	}
 }
 
-func rewardsToPool(config *params.YouParams, db *state.StateDB, header *types.Header, receipt *types.Receipt) {
-	initStat, _ := db.GetValidatorsStat()
-	blockRewards := blockRewards(config, db, header, initStat.GetRewardResidue())
+func rewardsToPool(ctx *context) {
+	initStat, _ := ctx.db.GetValidatorsStat()
+	blockRewards := blockRewards(ctx.config, ctx.db, ctx.header, initStat.GetRewardResidue())
 	if blockRewards.Sign() <= 0 {
 		// no rewards, just return
 		return
@@ -113,7 +131,7 @@ func rewardsToPool(config *params.YouParams, db *state.StateDB, header *types.He
 	var sumOfPortions uint64
 	for _, role := range []params.ValidatorRole{params.RoleChancellor, params.RoleSenator, params.RoleHouse} {
 		if initStat.GetByRole(role).GetCount() > 0 {
-			r := config.RewardsDistRatio[role]
+			r := ctx.config.RewardsDistRatio[role]
 			roleRewards[role] = &rewardsInfo{
 				ratio:   r,
 				rewards: new(big.Int),
@@ -131,24 +149,24 @@ func rewardsToPool(config *params.YouParams, db *state.StateDB, header *types.He
 	}
 
 	// distributes the rewards to block-proposer and the pools of other role of validators
-	proposer := db.GetValidatorByMainAddr(header.Coinbase)
+	proposer := ctx.db.GetValidatorByMainAddr(ctx.header.Coinbase)
 	if proposer == nil {
 		// an validator is removed from validators set only when it's total staking is zero,
 		// and there's a WithdrawDelay when it do a withdraw, and the WithdrawDelay MUST greater then the StakeLookBack,
 		// so, the proposer MUST exist.
-		logging.Crit("SHOULD NOT HAPPENED. proposer not in the current validators set", "blockNumber", header.Number, "coinbase", header.Coinbase.String())
+		logging.Crit("SHOULD NOT HAPPENED. proposer not in the current validators set", "blockNumber", ctx.header.Number, "coinbase", ctx.header.Coinbase.String())
 	}
 	for role, info := range roleRewards {
 		if role == proposer.Role {
 			// proposer got the whole rewards of its role
 			oldVal := proposer.PartialCopy()
 			proposer.AddTotalRewards(info.rewards)
-			db.UpdateValidator(proposer, oldVal)
-			receipt.Logs = append(receipt.Logs, &types.Log{
+			ctx.db.UpdateValidator(proposer, oldVal)
+			ctx.receipt.Logs = append(ctx.receipt.Logs, &types.Log{
 				Address:     params.StakingModuleAddress,
 				Topics:      []common.Hash{common.StringToHash(LogTopicProposerRewards), proposer.MainAddress().Hash()},
 				Data:        common.BigToHash(info.rewards).Bytes(),
-				BlockNumber: header.Number.Uint64(),
+				BlockNumber: ctx.header.Number.Uint64(),
 			})
 		} else {
 			// add to role stat's pool
@@ -159,33 +177,33 @@ func rewardsToPool(config *params.YouParams, db *state.StateDB, header *types.He
 	initStat.GetByKind(params.KindValidator).SetRewardsResidue(residue)
 }
 
-func (s *Staking) endStakingPeriod(config *params.YouParams, db *state.StateDB, header *types.Header, txs []*types.Transaction, receipt *types.Receipt) (err error) {
-	blockNumber := header.Number.Uint64()
-	if (blockNumber+1)%config.StakingTrieFrequency != 0 {
+func (s *Staking) endStakingPeriod(ctx *context, txs []*types.Transaction) (err error) {
+	blockNumber := ctx.header.Number.Uint64()
+	if (blockNumber+1)%ctx.config.StakingTrieFrequency != 0 {
 		// not the end of a staking period
 		return nil
 	}
 
 	// distributes rewards to each account
 	var settled map[common.Address]struct{}
-	if settled, err = s.distributeRewards(config, db, header, receipt); err != nil {
+	if settled, err = s.distributeRewards(ctx); err != nil {
 		return fmt.Errorf("handleRewards failed, err=%v ", err)
 	}
 
 	// process current withdraw queue
-	processWithdrawQueue(config, db, header, receipt)
+	processWithdrawQueue(ctx)
 
 	// make all pending staking transactions of current period to take effects.
-	err = processPendingTxs(config, db, header, txs, receipt, settled)
+	err = processPendingTxs(ctx, txs, settled)
 
 	return err
 }
 
 // distributeRewards distributes rewards to each validator on the end of a staking period.
 // It also try to settle validator rewards for those without settled for a time longer then the interval by config.
-func (s *Staking) distributeRewards(config *params.YouParams, db *state.StateDB, header *types.Header, receipt *types.Receipt) (map[common.Address]struct{}, error) {
+func (s *Staking) distributeRewards(ctx *context) (map[common.Address]struct{}, error) {
 	// settle rewards before validators updating
-	initStat, _ := db.GetValidatorsStat()
+	initStat, _ := ctx.db.GetValidatorsStat()
 
 	if initStat.GetStakeByKind(params.KindValidator).Sign() <= 0 {
 		return nil, fmt.Errorf("empty stake")
@@ -229,13 +247,13 @@ func (s *Staking) distributeRewards(config *params.YouParams, db *state.StateDB,
 	}
 
 	settled := make(map[common.Address]struct{}) // map for recording validators have been forced to settle rewards.
-	currRound := header.Number.Uint64()
-	forceSettleGap := config.MaxRewardsPeriod * config.StakingTrieFrequency
+	currRound := ctx.header.Number.Uint64()
+	forceSettleGap := ctx.config.MaxRewardsPeriod * ctx.config.StakingTrieFrequency
 	// do distribute
-	allValidators := db.GetValidators().List()
+	allValidators := ctx.db.GetValidators().List()
 	for _, val := range allValidators {
 		if val.IsOffline() {
-			settleValidatorRewards(db, val, currRound)
+			settleValidatorRewards(ctx, val, currRound)
 			settled[val.MainAddress()] = struct{}{}
 			continue
 		}
@@ -260,11 +278,11 @@ func (s *Staking) distributeRewards(config *params.YouParams, db *state.StateDB,
 		}
 		newVal := val.PartialCopy()
 		newVal.AddTotalRewards(rewards)
-		db.UpdateValidator(newVal, val)
+		ctx.db.UpdateValidator(newVal, val)
 
 		// check if need to settle
 		if val.RewardsLastSettled < currRound && val.RewardsLastSettled+forceSettleGap <= currRound {
-			settleValidatorRewards(db, val, currRound)
+			settleValidatorRewards(ctx, val, currRound)
 			settled[val.MainAddress()] = struct{}{}
 		}
 	}
@@ -289,21 +307,21 @@ func (s *Staking) distributeRewards(config *params.YouParams, db *state.StateDB,
 	return settled, nil
 }
 
-func processPendingTxs(config *params.YouParams, db *state.StateDB, header *types.Header, txs []*types.Transaction, receipt *types.Receipt, forceSettled map[common.Address]struct{}) error {
+func processPendingTxs(ctx *context, txs []*types.Transaction, forceSettled map[common.Address]struct{}) error {
 	// cache validator address who's rewards has been fully settled
 	rewardsSettled := forceSettled
 
 	signer := types.MakeSigner(nil)
-	diskDb := db.Database().TrieDB().DiskDB()
-	currRound := header.Number.Uint64()
+	diskDb := ctx.db.Database().TrieDB().DiskDB()
+	currRound := ctx.header.Number.Uint64()
 
-	err := db.ForEachStakingRecord(func(d, v common.Address, record *state.Record) error {
+	err := ctx.db.ForEachStakingRecord(func(d, v common.Address, record *state.Record) error {
 		// As long as any transaction related to a validator, then settle its rewards first.
 		if _, settled := rewardsSettled[v]; !settled {
-			val := db.GetValidatorByMainAddr(v)
+			val := ctx.db.GetValidatorByMainAddr(v)
 			// If the pending tx is validatorCreate, then the validator will not exist currently.
 			if val != nil {
-				settleValidatorRewards(db, val, currRound)
+				settleValidatorRewards(ctx, val, currRound)
 			}
 			rewardsSettled[v] = struct{}{}
 		}
@@ -326,10 +344,10 @@ func processPendingTxs(config *params.YouParams, db *state.StateDB, header *type
 			msg, _ := tx.AsMessage(signer)
 			ctx := &messageContext{
 				Msg:     msg,
-				State:   db,
-				Cfg:     config,
-				Header:  header,
-				Receipt: receipt,
+				State:   ctx.db,
+				Cfg:     ctx.config,
+				Header:  ctx.header,
+				Receipt: ctx.receipt,
 			}
 			takeEffectEntry(ctx)
 		}
@@ -339,14 +357,19 @@ func processPendingTxs(config *params.YouParams, db *state.StateDB, header *type
 	return err
 }
 
-func settleValidatorRewards(db *state.StateDB, val *state.Validator, currRound uint64) {
+func settleValidatorRewards(ctx *context, val *state.Validator, currRound uint64) {
+	valAddr := val.MainAddress()
 	//special case: collect final residue for offline validator
 	if val.Stake.Sign() == 0 && val.RewardsDistributable.Sign() > 0 {
-		db.AddBalance(val.Coinbase, val.RewardsDistributable)
+		//local detail
+		ctx.recorder.AddReward(valAddr, val.Coinbase, val.RewardsDistributable)
+
+		// actual updates
+		ctx.db.AddBalance(val.Coinbase, val.RewardsDistributable)
 		newVal := val.PartialCopy()
 		newVal.RewardsDistributable.SetUint64(0)
 		newVal.RewardsLastSettled = currRound
-		db.UpdateValidator(newVal, val)
+		ctx.db.UpdateValidator(newVal, val)
 		return
 	}
 	// check if there is rewards
@@ -367,7 +390,11 @@ func settleValidatorRewards(db *state.StateDB, val *state.Validator, currRound u
 	selfReward := new(big.Int).Mul(record.per, val.SelfStake)
 	record.total.Sub(record.total, selfReward)
 	selfReward.Add(selfReward, commisson)
-	db.AddBalance(val.Coinbase, selfReward)
+	ctx.db.AddBalance(val.Coinbase, selfReward)
+
+	//local detail
+	ctx.recorder.AddReward(valAddr, val.Coinbase, selfReward)
+
 	// for reuse
 	reward := new(big.Int)
 	for _, dlg := range val.Delegations {
@@ -376,40 +403,46 @@ func settleValidatorRewards(db *state.StateDB, val *state.Validator, currRound u
 		record.total.Sub(record.total, reward)
 		if record.total.Sign() < 0 {
 			//SHOULD NOT HAPPEN, log for debug
-			logging.Crit("validator rewards distribution fatal", "validator", val.MainAddress().String(), "totalRewards", val.RewardsDistributable, "commissionRate", val.CommissionRate, "commission", commisson, "totalStake", val.Stake, "selfStake", val.SelfStake, "perStakeReward", record.per, "expectedResidue", record.residue, "gotResidue", record.total)
+			logging.Crit("validator rewards distribution fatal", "validator", valAddr.String(), "totalRewards", val.RewardsDistributable, "commissionRate", val.CommissionRate, "commission", commisson, "totalStake", val.Stake, "selfStake", val.SelfStake, "perStakeReward", record.per, "expectedResidue", record.residue, "gotResidue", record.total)
 		}
-		db.AddBalance(dlg.Delegator, reward)
+		ctx.db.AddBalance(dlg.Delegator, reward)
+
+		//local detail
+		ctx.recorder.AddReward(valAddr, dlg.Delegator, reward)
 	}
 	if record.total.Cmp(record.residue) != 0 {
 		//SHOULD NOT HAPPEN, log for debug
-		logging.Crit("validator rewards distribution fatal", "validator", val.MainAddress().String(), "totalRewards", val.RewardsDistributable, "commissionRate", val.CommissionRate, "commission", commisson, "totalStake", val.Stake, "selfStake", val.SelfStake, "perStakeReward", record.per, "expectedResidue", record.residue, "gotResidue", record.total)
+		logging.Crit("validator rewards distribution fatal", "validator", valAddr.String(), "totalRewards", val.RewardsDistributable, "commissionRate", val.CommissionRate, "commission", commisson, "totalStake", val.Stake, "selfStake", val.SelfStake, "perStakeReward", record.per, "expectedResidue", record.residue, "gotResidue", record.total)
 	}
 
 	// collect residue
 	if val.IsOffline() {
+		//local detail
+		ctx.recorder.AddReward(valAddr, val.Coinbase, record.residue)
+
 		// for a offline validator, takes residue by itself.
-		db.AddBalance(val.Coinbase, record.residue)
+		ctx.db.AddBalance(val.Coinbase, record.residue)
 		record.residue.SetUint64(0)
 	}
 
 	newVal := val.PartialCopy()
 	newVal.RewardsDistributable.Set(record.residue)
 	newVal.RewardsLastSettled = currRound
-	db.UpdateValidator(newVal, val)
+	ctx.db.UpdateValidator(newVal, val)
 }
 
 // processWithdrawQueue .
 // log data format:
 // [0,19]   [20,31]
 // receipt  arrivalAmount
-func processWithdrawQueue(config *params.YouParams, db *state.StateDB, header *types.Header, receipt *types.Receipt) {
+func processWithdrawQueue(ctx *context) {
 	getLogData := func(receipt common.Address, arrivalAmount *big.Int) []byte {
 		data := common.BigToHash(arrivalAmount).Bytes()
 		copy(data[:common.AddressLength], receipt.Bytes())
 		return data
 	}
 
-	queue := db.GetWithdrawQueue()
+	queue := ctx.db.GetWithdrawQueue()
 	var discardRecords []int
 	returnAmount := new(big.Int) // for reuse
 	for i, record := range queue.Records {
@@ -419,33 +452,33 @@ func processWithdrawQueue(config *params.YouParams, db *state.StateDB, header *t
 		)
 		if record.FinalBalance.Cmp(bigZero) <= 0 { // no more token for withdrawing
 			record.Finished = 1
-			receipt.Logs = append(receipt.Logs, &types.Log{
+			ctx.receipt.Logs = append(ctx.receipt.Logs, &types.Log{
 				Address:     params.StakingModuleAddress,
 				Topics:      []common.Hash{common.StringToHash(LogTopicWithdrawResult), record.Operator.Hash()},
 				Data:        getLogData(record.Recipient, bigZero),
-				BlockNumber: header.Number.Uint64(),
+				BlockNumber: ctx.header.Number.Uint64(),
 				TxHash:      record.TxHash,
 			})
 		} else {
-			matured = record.IsMature(header.Number.Uint64())
+			matured = record.IsMature(ctx.header.Number.Uint64())
 			release = matured && (record.Finished == 0)
 			if release {
 				returnAmount.Set(record.FinalBalance)
 				record.Finished = 1
-				db.AddBalance(record.Recipient, returnAmount)
+				ctx.db.AddBalance(record.Recipient, returnAmount)
 
-				receipt.Logs = append(receipt.Logs, &types.Log{
+				ctx.receipt.Logs = append(ctx.receipt.Logs, &types.Log{
 					Address:     params.StakingModuleAddress,
 					Topics:      []common.Hash{common.StringToHash(LogTopicWithdrawResult), record.Operator.Hash()},
 					Data:        getLogData(record.Recipient, returnAmount),
-					BlockNumber: header.Number.Uint64(),
+					BlockNumber: ctx.header.Number.Uint64(),
 					TxHash:      record.TxHash,
 				})
 			}
 		}
 
 		//discard record
-		if record.Finished == 1 && (header.Number.Uint64()-record.CompletionHeight > config.WithdrawRecordRetention) {
+		if record.Finished == 1 && (ctx.header.Number.Uint64()-record.CompletionHeight > ctx.config.WithdrawRecordRetention) {
 			discardRecords = append(discardRecords, i)
 		}
 		if release {
@@ -456,7 +489,7 @@ func processWithdrawQueue(config *params.YouParams, db *state.StateDB, header *t
 	}
 
 	if len(discardRecords) > 0 {
-		db.RemoveWithdrawRecords(discardRecords)
+		ctx.db.RemoveWithdrawRecords(discardRecords)
 	}
 }
 

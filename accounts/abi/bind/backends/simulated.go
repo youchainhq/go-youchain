@@ -38,6 +38,7 @@ import (
 	"github.com/youchainhq/go-youchain/core/types"
 	"github.com/youchainhq/go-youchain/core/vm"
 	"github.com/youchainhq/go-youchain/event"
+	"github.com/youchainhq/go-youchain/local"
 	"github.com/youchainhq/go-youchain/params"
 	"github.com/youchainhq/go-youchain/rpc"
 	"github.com/youchainhq/go-youchain/you/filters"
@@ -79,7 +80,7 @@ func NewSimulatedBackendWithDatabase(database youdb.Database, alloc core.Genesis
 	genesis.MustCommit(database)
 	engine := solo.NewFallbackSolo(true, 0, 0, time.Second)
 	eventMux := event.NewMux()
-	blockchain, _ := core.NewBlockChainWithType(database, engine, eventMux, params.FullNode)
+	blockchain, _ := core.NewBlockChain(database, engine, eventMux, params.FullNode, local.FakeDetailDB())
 	// The engine is not caravel engine, so don't need a staking module.
 	// Currently core.GenerateChain can't support caravel engine due to lots of problems.
 
@@ -445,7 +446,7 @@ func (b *SimulatedBackend) callContract(ctx context.Context, call youchain.CallM
 	// about the transaction and calling mechanisms.
 	gaspool := new(core.GasPool).AddGas(math.MaxUint64)
 
-	return b.blockchain.Processor().ApplyMessageEntry(msg, statedb, b.blockchain, block.Header(), &common.Address{}, gaspool, vmCfg)
+	return b.blockchain.Processor().ApplyMessageEntry(msg, statedb, b.blockchain, block.Header(), &common.Address{}, gaspool, vmCfg, local.FakeRecorder())
 }
 
 // SendTransaction updates the pending block to include the given transaction.
