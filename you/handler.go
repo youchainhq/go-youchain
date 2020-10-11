@@ -384,9 +384,14 @@ func (pm *ProtocolManager) handleNewBlockMsg(p *peer, msg p2p.Msg) error {
 		p.SetHead(trueHead, trueNumber)
 
 		currentBlock := pm.blockchain.CurrentBlock()
+		localHeader := pm.blockchain.GetHeaderByNumber(trueNumber.Uint64())
+		var localHash common.Hash
+		if localHeader != nil {
+			localHash = localHeader.Hash()
+		}
 		// p's parent block number is greater than local block number
 		// cautious! downloader should only handle the far behind situation.
-		if trueNumber.Cmp(currentBlock.Number()) > 0 {
+		if trueNumber.Cmp(currentBlock.Number()) > 0 || trueHead != localHash {
 			go pm.synchronise(p, syncActionNewBlock)
 		}
 	}
