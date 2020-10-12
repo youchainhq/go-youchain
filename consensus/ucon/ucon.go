@@ -298,6 +298,7 @@ func (s *Server) StartNewRound(newRound bool) error {
 	}
 	s.currParamsLock.Lock()
 	s.currRoundParams = &yp.CaravelParams
+	s.msgHandler.UpdateAllowedFutureMsgTime(yp.AllowedFutureBlockTime)
 	s.currParamsLock.Unlock()
 
 	s.timer.startTimer(s.currentRound, s.roundIndex, newRound, yp.ConsensusTimeout, yp.ConsensusStepInterval)

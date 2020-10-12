@@ -68,6 +68,8 @@ type MessageHandler struct {
 	processPriorityMsgFn      ProcessPriorityMsg
 	processProposedBlockMsgFn ProcessProposedBlockMsg
 	processVoteMsgFn          ProcessVoteMsg
+
+	allowedFutureMsgTime time.Duration // allowed max time of future message
 }
 
 func NewMessageHandler(rawSk *ecdsa.PrivateKey,
@@ -85,6 +87,7 @@ func NewMessageHandler(rawSk *ecdsa.PrivateKey,
 		processPriorityMsgFn:      processPriotiryMsg,
 		processProposedBlockMsgFn: processProposedBlockMsg,
 		processVoteMsgFn:          processVoteMsg,
+		allowedFutureMsgTime:      10 * time.Second,
 	}
 	mh.cachedMessages = InitCachedMessages()
 
@@ -232,6 +235,11 @@ func (mh *MessageHandler) HandleMsg(data []byte, receivedAt time.Time) error {
 		}
 		if mh.round != nil && round.Cmp(mh.round) == 0 {
 			if mh.roundIndex == roundIndex {
+				// If the timestamp is far ahead, then it's still invalid.
+				if sendAt > uint64(time.Now().Add(mh.allowedFutureMsgTime).Unix()) {
+					logging.Warn("A message far ahead", "addr", addr, "msgType", MessageCodeToString(msgType), "sendAt", time.Unix(int64(sendAt), 0).String())
+					return msgInvalid, nil
+				}
 				return msgSame, nil
 			} else if mh.roundIndex > roundIndex {
 				return msgOldRoundIndex, nil
@@ -475,4 +483,10 @@ func (mh *MessageHandler) processCachedMsgs() {
 	processFn(msgPrevote)
 	processFn(msgPrecommit)
 	processFn(msgNext)
+}
+
+func (mh *MessageHandler) UpdateAllowedFutureMsgTime(t time.Duration) {
+	if t > time.Second {
+		mh.allowedFutureMsgTime = t
+	}
 }

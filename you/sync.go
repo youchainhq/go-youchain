@@ -179,17 +179,21 @@ func (pm *ProtocolManager) synchronise(peer *peer, action syncAction) error {
 
 	currentBlock := pm.blockchain.CurrentBlock()
 	number := currentBlock.Number()
-	logging.Info("synchronise from peer", "pid", peer.id, "peer number:", peer.number, " local height: ", number.Uint64(), "action", action)
-
-	if peer.number == nil || peer.number.Cmp(number) <= 0 {
-		if action == syncActionNewPeer { //only sync pos when new peer found
-			start := time.Now()
-			logging.Info("start post SyncFinishedEvent", "action", action, "peerid", peer.id)
-			pm.eventMux.Post(downloader.SyncFinishedEvent{Peer: peer})
-			logging.Info("finish post SyncFinishedEvent", "action", action, "elapsed", time.Now().Sub(start), "peer", peer.id)
+	// For syncActionNewBlock, just try to synchronise,
+	// otherwise do some check.
+	if action != syncActionNewBlock {
+		if peer.number == nil || peer.number.Cmp(number) <= 0 {
+			if action == syncActionNewPeer { //only sync pos when new peer found
+				start := time.Now()
+				logging.Info("start post SyncFinishedEvent", "action", action, "peerid", peer.id)
+				pm.eventMux.Post(downloader.SyncFinishedEvent{Peer: peer})
+				logging.Info("finish post SyncFinishedEvent", "action", action, "elapsed", time.Now().Sub(start), "peer", peer.id)
+			}
+			return nil
 		}
-		return nil
 	}
+
+	logging.Info("try synchronise from peer", "pid", peer.id, "peer number:", peer.number, " local height: ", number.Uint64(), "action", action)
 
 	if atomic.CompareAndSwapUint32(&pm.downloaderSyncing, 0, 1) {
 		defer func() {
