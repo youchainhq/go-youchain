@@ -141,36 +141,38 @@ func (p *peer) SetHead(hash common.Hash, number *big.Int) {
 	}
 }
 
-// broadcast is a write loop that multiplexes block propagations, announcements
+// broadcast is a write loop that multiplexes block propagation, announcements
 // and transaction broadcasts into the remote peer. The goal is to have an async
 // writer that does not lock up node internals.
 func (p *peer) broadcast() {
+	var err error
+	defer func() {
+		if err != nil && p.IsTrusted() {
+			logging.Warn("broadcast quit", "pid", p.id, "err", err)
+		}
+	}()
 	for {
 		select {
-		case ev, ok := <-p.queuedConsensus:
-			if !ok {
-				return
-			}
-			if err := p.SendConsensus(ev); err != nil {
+		case ev := <-p.queuedConsensus:
+			if err = p.SendConsensus(ev); err != nil {
 				return
 			}
 		case txs := <-p.queuedTxs:
-			if err := p.SendTransactions(txs); err != nil {
+			if err = p.SendTransactions(txs); err != nil {
 				return
 			}
-			logging.Info("Broadcast transactions", "count", len(txs))
 
 		case prop := <-p.queuedProps:
-			if err := p.SendNewBlock(prop.block); err != nil {
+			if err = p.SendNewBlock(prop.block); err != nil {
 				return
 			}
-			logging.Info("Propagated block", "number", prop.block.Number(), "hash", prop.block.Hash().String())
+			logging.Info("Propagated block", "pid", p.id, "number", prop.block.Number(), "hash", prop.block.Hash().String())
 
 		case block := <-p.queuedAnns:
-			if err := p.SendNewBlockHashes([]common.Hash{block.Hash()}, []uint64{block.NumberU64()}); err != nil {
+			if err = p.SendNewBlockHashes([]common.Hash{block.Hash()}, []uint64{block.NumberU64()}); err != nil {
 				return
 			}
-			logging.Trace("Announced block", "number", block.Number(), "hash", block.Hash().String())
+			logging.Trace("Announced block", "pid", p.id, "number", block.Number(), "hash", block.Hash().String())
 
 		case <-p.term:
 			return
@@ -232,19 +234,23 @@ func (p *peer) AsyncSendTransactions(txs []*types.Transaction) {
 // SendNewBlock propagates an entire block to a remote peer.
 func (p *peer) SendNewBlock(block *types.Block) error {
 	p.knownBlocks.Add(block.Hash())
-	return p2p.Send(p.rw, NewBlockMsg, block)
+	err := p2p.Send(p.rw, NewBlockMsg, block)
+	if err != nil && p.IsTrusted() {
+		logging.Info("SendNewBlock failed", "pid", p.id, "number", block.NumberU64(), "hash", block.Hash(), "err", err)
+		p.knownBlocks.Remove(block.Hash())
+	}
+	return err
 }
 
 // AsyncSendNewBlock queues an entire block for propagation to a remote peer. If
 // the peer's broadcast queue is full, the event is silently dropped.
 func (p *peer) AsyncSendNewBlock(block *types.Block) {
-	logging.Info("AsyncSendNewBlock", "pid", p.id, "number", block.Number())
 	select {
 	case p.queuedProps <- &propEvent{block: block}:
-		logging.Info("AsyncSendNewBlock put", "pid", p.id, "number", block.Number())
+		logging.Info("AsyncSendNewBlock put", "pid", p.id, "number", block.Number(), "hash", block.Hash())
 		p.knownBlocks.Add(block.Hash())
 	default:
-		logging.Debug("Dropping block propagation", "number", block.NumberU64(), "hash", block.Hash())
+		logging.Info("Dropping block propagation", "pid", p.id, "number", block.NumberU64(), "hash", block.Hash())
 	}
 }
 
@@ -537,14 +543,21 @@ func (ps *PeerSet) Len() int {
 
 // PeersWithoutBlock retrieves a list of peers that do not have a given block in
 // their set of known hashes.
+// Starting with trusted peers.
 func (ps *PeerSet) PeersWithoutBlock(hash common.Hash) []*peer {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 
 	list := make([]*peer, 0, len(ps.peers))
+	var ti, ln int //first none-trusted peer index, length
 	for _, p := range ps.peers {
 		if !p.knownBlocks.Contains(hash) {
 			list = append(list, p)
+			if p.IsTrusted() {
+				list[ti], list[ln] = list[ln], list[ti]
+				ti++
+			}
+			ln++
 		}
 	}
 	return list
