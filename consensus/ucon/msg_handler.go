@@ -204,6 +204,11 @@ func (mh *MessageHandler) HandleMsg(data []byte, receivedAt time.Time) error {
 	var msgRound *big.Int
 	var msgRoundIndex uint32
 	judger := func(round *big.Int, roundIndex uint32, sendAt uint64, msgType MsgType) (MsgReceivedStatus, error) {
+		// If the timestamp is far ahead, then treat it as invalid.
+		if sendAt > uint64(time.Now().Add(mh.allowedFutureMsgTime).Unix()) {
+			logging.Warn("A message far ahead", "addr", addr, "msgType", MessageCodeToString(msgType), "sendAt", time.Unix(int64(sendAt), 0).String())
+			return msgInvalid, nil
+		}
 		// don't process msg from a round which is smaller then round-OldRoundMaxInterval
 		if mh.round != nil && mh.round.Cmp(round) > 0 && mh.round.Uint64()-round.Uint64() > uint64(params.MaxVoteCacheCount) {
 			return msgInvalid, nil
@@ -235,11 +240,6 @@ func (mh *MessageHandler) HandleMsg(data []byte, receivedAt time.Time) error {
 		}
 		if mh.round != nil && round.Cmp(mh.round) == 0 {
 			if mh.roundIndex == roundIndex {
-				// If the timestamp is far ahead, then it's still invalid.
-				if sendAt > uint64(time.Now().Add(mh.allowedFutureMsgTime).Unix()) {
-					logging.Warn("A message far ahead", "addr", addr, "msgType", MessageCodeToString(msgType), "sendAt", time.Unix(int64(sendAt), 0).String())
-					return msgInvalid, nil
-				}
 				return msgSame, nil
 			} else if mh.roundIndex > roundIndex {
 				return msgOldRoundIndex, nil
