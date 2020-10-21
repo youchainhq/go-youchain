@@ -17,7 +17,7 @@ require (
 	github.com/influxdata/influxdb1-client v0.0.0-20190402204710-8ff2fc3824fc
 	github.com/jackpal/go-nat-pmp v0.0.0-20170405195558-28a68d0c24ad
 	github.com/kr/pretty v0.2.0 // indirect
-	github.com/lucas-clemente/quic-go v0.14.4
+	github.com/lucas-clemente/quic-go v0.14.5
 	github.com/mattn/go-colorable v0.0.9
 	github.com/mattn/go-isatty v0.0.9
 	github.com/multiformats/go-multiaddr v0.0.0-20180721003118-d6ad8896def6
@@ -32,7 +32,7 @@ require (
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/urfave/cli v1.21.0
 	github.com/youchainhq/bls v0.9.0
-	golang.org/x/crypto v0.0.0-20200115085410-6d4e4cb37c7d
+	golang.org/x/crypto v0.0.0-20200423211502-4bdfaf469ed5
 	golang.org/x/net v0.0.0-20200226121028-0de0cce0169b
 	golang.org/x/sys v0.0.0-20190904154756-749cb33beabd
 	gonum.org/v1/gonum v0.0.0-20190628223043-536a303fd62f
@@ -43,3 +43,5 @@ require (
 	gopkg.in/sourcemap.v1 v1.0.5 // indirect
 	gopkg.in/yaml.v2 v2.2.4
 )
+
+replace github.com/lucas-clemente/quic-go v0.14.5 => github.com/youchainhq/quic-go v0.14.5
