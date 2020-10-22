@@ -24,8 +24,8 @@ github.com/btcsuite/websocket v0.0.0-20150119174127-31079b680792 h1:R8vQdOQdZ9Y3
 github.com/btcsuite/websocket v0.0.0-20150119174127-31079b680792/go.mod h1:ghJtEyQwv5/p4Mg4C0fgbePVuGr935/5ddU9Z3TmDRY=
 github.com/btcsuite/winsvc v1.0.0/go.mod h1:jsenWakMcC0zFBFurPLEAyrnc/teJEM1O46fmI40EZs=
 github.com/campoy/embedmd v1.0.0/go.mod h1:oxyr9RCiSXg0M3VJ3ks0UGfp98BpSSGr0kpiX3MzVl8=
-github.com/ccding/go-stun v0.0.0-20170323223013-04a4eed61c57 h1:sW8/rvtyMhcuzr9if6kB+ygYQUfY8Nny9cpukP40GJY=
-github.com/ccding/go-stun v0.0.0-20170323223013-04a4eed61c57/go.mod h1:3FK1bMar37f7jqVY7q/63k3OMX1c47pGCufzt3X0sYE=
+github.com/ccding/go-stun v0.1.2 h1:1CZhjVwfyO/jGxk06a+0OSOGBWZu588kuZQQO4nihsw=
+github.com/ccding/go-stun v0.1.2/go.mod h1:3FK1bMar37f7jqVY7q/63k3OMX1c47pGCufzt3X0sYE=
 github.com/cheekybits/genny v1.0.0 h1:uGGa4nei+j20rOSeDeP5Of12XVm7TGUd4dJA9RDitfE=
 github.com/cheekybits/genny v1.0.0/go.mod h1:+tQajlRqAUrPI7DOSpB0XAqZYtQakVtB7wXkRAgjxjQ=
 github.com/davecgh/go-spew v0.0.0-20171005155431-ecdeabc65495/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

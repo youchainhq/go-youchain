@@ -6,7 +6,7 @@ require (
 	github.com/ALTree/bigfloat v0.0.0-20180506151649-b176f1e721fc
 	github.com/aristanetworks/goarista v0.0.0-20180907105523-ff33da284e76
 	github.com/btcsuite/btcd v0.20.1-beta
-	github.com/ccding/go-stun v0.0.0-20170323223013-04a4eed61c57
+	github.com/ccding/go-stun v0.1.2
 	github.com/davecgh/go-spew v1.1.1
 	github.com/deckarep/golang-set v1.7.1
 	github.com/fatih/color v1.7.0

@@ -64,7 +64,7 @@ var (
 		cli.StringFlag{Name: "nat.type", Value: "Unknown", Destination: &defaultNatType, Usage: "NAT type, vales:Unknown|None|Full|Restricted|PortRestricted|Symmetric"},
 		cli.StringFlag{Name: "nat.master", Value: "42.62.25.77:45521", Usage: "NAT master server IP address and port", Destination: &natMasterAddr},
 		cli.StringFlag{Name: "nat.slave", Value: "42.62.25.79:45523", Usage: "NAT slave server IP address and port", Destination: &natSlaveAddr},
-		cli.StringFlag{Name: "nat.pubservice", Value: "stun.ideasip.com:3478", Destination: &natPublicService, Usage: "NAT public detection service address"},
+		cli.StringFlag{Name: "nat.pubservice", Value: "stun.stunprotocol.org:3478,stun.ekiga.net:3478", Destination: &natPublicService, Usage: "Comma separated list of NAT public detection service addresses"},
 	}
 )
 
@@ -80,8 +80,7 @@ func SetP2PConfig(ctx *cli.Context, nodeConfig *node.Config) error {
 		logging.Info("start Nat check", "p2p port", nodeCfg.P2pPort, "discover port", nodeCfg.P2pDiscover)
 		natType, err = checkNatTypeLoop(nodeCfg.P2pPort, nodeCfg.P2pDiscover, false)
 		if err != nil {
-			logging.Error("Nat check failed", "err", err)
-			return err
+			logging.Error("Nat check failed from public service", "err", err)
 		}
 		if natType == enode.NATUnknown {
 			natType, err = checkNatTypeLoop(nodeCfg.P2pPort, nodeCfg.P2pDiscover, true)

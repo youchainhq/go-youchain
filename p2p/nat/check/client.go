@@ -24,6 +24,7 @@ import (
 	"github.com/youchainhq/go-youchain/logging"
 	"github.com/youchainhq/go-youchain/p2p/enode"
 	"net"
+	"strings"
 	"sync"
 	"time"
 )
@@ -390,17 +391,24 @@ func CheckNatTypeWithPublic(port int) (nattype enode.NATType) {
 		client = stun.NewClientWithConnection(conn)
 	}
 
-	client.SetServerAddr(NatPublicService)
-	client.SetVerbose(false)
-	client.SetVVerbose(false)
-
-	nat, _, err := client.Discover()
-	if err != nil {
-		logging.Error("nat error", "err", err)
-		return nattype
-	}
-	if nat == stun.NATUnknown || nat == stun.NATBlocked || nat == stun.NATError {
-		return nattype
+	nat := stun.NATUnknown
+	var err error
+	servList := strings.Split(NatPublicService, ",")
+	for _, pubServ := range servList {
+		client.SetServerAddr(pubServ)
+		//client.SetVerbose(false)
+		//client.SetVVerbose(false)
+		logging.Info("check nat", "from", pubServ)
+		nat, _, err = client.Discover()
+		if err != nil {
+			logging.Warn("check nat error", "err", err, "from", pubServ)
+			nat = stun.NATUnknown
+		} else if nat == stun.NATUnknown || nat == stun.NATBlocked || nat == stun.NATError {
+			logging.Warn("check nat failed", "from", pubServ)
+			nat = stun.NATUnknown
+		} else {
+			break
+		}
 	}
 
 	switch nat {
