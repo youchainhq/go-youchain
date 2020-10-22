@@ -29,6 +29,11 @@ import (
 	"time"
 )
 
+const (
+	maxPacketSize          = 1024
+	retryTimesWhenMismatch = 5 // retry times when got mismatch data
+)
+
 var (
 	readTimeout  = 5 * time.Second
 	writeTimeout = 10 * time.Second
@@ -140,6 +145,7 @@ func (c *NATClient) Discover() *enode.NATType {
 				log.Error("listen UDP udp addr failed", "err", err)
 				return &natType
 			}
+			dryUpCache(conn)
 		}
 		c.conn = conn
 	}
@@ -166,8 +172,22 @@ func (c *NATClient) Discover() *enode.NATType {
 	return natType
 }
 
+func dryUpCache(conn *net.UDPConn) {
+	buf := make([]byte, maxPacketSize)
+	err := conn.SetReadDeadline(time.Now().Add(300 * time.Millisecond))
+	if err != nil {
+		return
+	}
+	for {
+		_, _, err = conn.ReadFrom(buf)
+		if err != nil {
+			break
+		}
+	}
+}
+
 func readPacket(conn *net.UDPConn) (packet, error) {
-	buf := make([]byte, 1024)
+	buf := make([]byte, maxPacketSize)
 	conn.SetReadDeadline(time.Now().Add(readTimeout))
 	nbytes, from, err := conn.ReadFromUDP(buf)
 	if err != nil {
@@ -370,6 +390,7 @@ func CheckNatTypeWithPublic(port int) (nattype enode.NATType) {
 	logging.Info("start check nat type")
 	nattype = enode.NATUnknown
 	var client *stun.Client = nil
+	var conn *net.UDPConn
 
 	if port <= 0 {
 		client = stun.NewClient()
@@ -380,7 +401,7 @@ func CheckNatTypeWithPublic(port int) (nattype enode.NATType) {
 			return nattype
 		}
 
-		conn, err := net.ListenUDP("udp", udpAddr)
+		conn, err = net.ListenUDP("udp", udpAddr)
 		if err != nil {
 			logging.Error("check nat failed", "err", err)
 			return nattype
@@ -388,6 +409,7 @@ func CheckNatTypeWithPublic(port int) (nattype enode.NATType) {
 
 		defer conn.Close()
 
+		dryUpCache(conn)
 		client = stun.NewClientWithConnection(conn)
 	}
 
@@ -396,10 +418,16 @@ func CheckNatTypeWithPublic(port int) (nattype enode.NATType) {
 	servList := strings.Split(NatPublicService, ",")
 	for _, pubServ := range servList {
 		client.SetServerAddr(pubServ)
-		//client.SetVerbose(false)
-		//client.SetVVerbose(false)
 		logging.Info("check nat", "from", pubServ)
 		nat, _, err = client.Discover()
+		if err != nil {
+			for i := 0; isMismatchData(err) && i < retryTimesWhenMismatch; i++ {
+				if nil != conn {
+					dryUpCache(conn)
+				}
+				nat, _, err = client.Discover()
+			}
+		}
 		if err != nil {
 			logging.Warn("check nat error", "err", err, "from", pubServ)
 			nat = stun.NATUnknown
@@ -426,6 +454,10 @@ func CheckNatTypeWithPublic(port int) (nattype enode.NATType) {
 		nattype = enode.NATSymmetricUDPFirewall
 	}
 	return nattype
+}
+
+func isMismatchData(err error) bool {
+	return err != nil && err.Error() == "Received data format mismatch."
 }
 
 func CheckNatTypeWithYou(port int) enode.NATType {
