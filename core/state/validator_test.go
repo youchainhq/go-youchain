@@ -47,10 +47,7 @@ func init() {
 		Stake:     big.NewInt(10),
 		Token:     big.NewInt(10),
 	})
-	valSrc.Ext = Extension{
-		Version: 0,
-		Data:    []byte{0x11, 0x22, 0x33, 0x44, 0x55, 0xaa, 0xbb, 0xcc},
-	}
+	valSrc.UpdateLastActive(123456)
 }
 
 func TestValidatorJsonEncode(t *testing.T) {
@@ -62,6 +59,7 @@ func TestValidatorJsonEncode(t *testing.T) {
 	assert.NoError(t, err, "json decode failed")
 	assert.Equal(t, valSrc.MainAddress(), val2.MainAddress())
 	assert.Equal(t, 0, valSrc.Token.Cmp(val2.Token))
+	assert.Equal(t, valSrc.LastActive(), val2.LastActive())
 }
 
 func TestValidatorEncode(t *testing.T) {
@@ -73,6 +71,7 @@ func TestValidatorEncode(t *testing.T) {
 	bs2, err := rlp.EncodeToBytes(&valDesc)
 	require.NoError(t, err)
 	require.True(t, bytes.Equal(bs, bs2))
+	assert.Equal(t, valSrc.LastActive(), valDesc.LastActive())
 }
 
 func TestDeepCopy(t *testing.T) {

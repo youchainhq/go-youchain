@@ -129,13 +129,15 @@ type StakingParams struct {
 	MaxRewardsPeriod     uint64
 	MaxEvidenceExpiredIn uint64
 
-	WithdrawDelay                uint64 // MUST large then CaravelParams.StakeLookBack
+	WithdrawDelay                uint64 // MUST be larger then CaravelParams.StakeLookBack
 	WithdrawRecordRetention      uint64
 	ExpelledRoundForDoubleSign   uint64
 	ExpelledRoundForInactive     uint64
 	PenaltyTo                    common.Address
 	PenaltyFractionForDoubleSign uint64
 	PenaltyFractionForInactive   uint64
+	// InactivityPenaltyWaitRounds, valid starting from YouV5, for Chamber only.
+	InactivityPenaltyWaitRounds uint64
 
 	// StakingTrieFrequency represents how many round a staking trie remains
 	StakingTrieFrequency uint64

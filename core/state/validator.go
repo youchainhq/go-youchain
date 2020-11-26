@@ -34,9 +34,20 @@ import (
 	"sync/atomic"
 )
 
+const (
+	extV0 uint8 = iota
+	extV1
+)
+
 type Extension struct {
 	Version uint8         `json:"version"`
 	Data    hexutil.Bytes `json:"data"`
+
+	extV1 ExtV1
+}
+
+type ExtV1 struct {
+	LastActive uint64 // last active block. Used for inactivity check.
 }
 
 type Validator struct {
@@ -185,6 +196,7 @@ func (v *Validator) PartialCopy() *Validator {
 		newVal.consAddr.Store(consAddr)
 	}
 	newVal.Delegations = v.Delegations
+	newVal.Ext = v.Ext
 	return newVal
 }
 
@@ -284,6 +296,22 @@ func (v *Validator) UpdateDelegationFrom(d *DelegationFrom) (flag params.CurdFla
 func (v *Validator) AddTotalRewards(reward *big.Int) {
 	v.RewardsDistributable.Add(v.RewardsDistributable, reward)
 	v.RewardsTotal.Add(v.RewardsTotal, reward)
+}
+
+func (v *Validator) UpdateLastActive(num uint64) {
+	v.Ext.Version = extV1
+	v.Ext.extV1.LastActive = num
+	v.Ext.Data = hexutil.Uint64ToBytes(num)
+}
+
+func (v *Validator) LastActive() uint64 {
+	if v.Ext.Version == extV1 {
+		if v.Ext.extV1.LastActive == 0 && len(v.Ext.Data) > 0 {
+			v.Ext.extV1.LastActive = hexutil.CompactBytesToUint64(v.Ext.Data)
+		}
+		return v.Ext.extV1.LastActive
+	}
+	return 0
 }
 
 type rlpVal struct {

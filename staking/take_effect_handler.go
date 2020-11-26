@@ -195,6 +195,9 @@ func teChangeStatus(ctx *messageContext, payload []byte) error {
 	}
 	newVal := old.PartialCopy()
 	newVal.Status = tx.Status
+	if ctx.Header.CurrVersion >= params.YouV5 {
+		newVal.UpdateLastActive(ctx.Header.Number.Uint64())
+	}
 	ctx.State.UpdateValidator(newVal, old)
 	return nil
 }

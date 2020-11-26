@@ -33,6 +33,8 @@ import (
 	"github.com/youchainhq/go-youchain/params"
 )
 
+var alreadyUpgradeToYouV5 bool
+
 // tempRewardsRecord is a struct used on handling rewards.
 type tempRewardsRecord struct {
 	total, per, residue *big.Int
@@ -83,6 +85,8 @@ func EndBlock(staking *Staking) core.BlockHookFn {
 			recorder: recorder,
 		}
 
+		checkAndUpgradeValidatorsToYouV5(ctx)
+
 		// slashing
 		if isSeal {
 			if _, _, _, err = staking.slashing(ctx); err != nil {
@@ -94,7 +98,7 @@ func EndBlock(staking *Staking) core.BlockHookFn {
 			}
 		}
 
-		// rewards to pool for every block
+		// rewards to pool for each block
 		rewardsToPool(ctx)
 
 		// process the staking business on the end of a period
@@ -110,6 +114,34 @@ func EndBlock(staking *Staking) core.BlockHookFn {
 		receipt.TransactionIndex = uint(db.TxIndex())
 
 		return receipt, nil, nil
+	}
+}
+
+// checkAndUpgradeValidatorsToYouV5 initializes the lastProposed value of each validator on the first block of YouV5,
+// so it can be used for inactivity check.
+func checkAndUpgradeValidatorsToYouV5(ctx *context) {
+	if alreadyUpgradeToYouV5 {
+		return
+	}
+	if ctx.header.CurrVersion > params.YouV5 {
+		alreadyUpgradeToYouV5 = true
+		return
+	}
+	if ctx.header.CurrVersion == params.YouV5 {
+		num := ctx.header.Number.Uint64()
+		parent := ctx.chain.GetHeader(ctx.header.ParentHash, num-1)
+		if parent.CurrVersion == params.YouV4 {
+			// only do once on the first YouV5 block.
+			all := ctx.db.GetValidatorsForUpdate()
+			for _, val := range all {
+				if val.Role != params.RoleHouse && val.IsOnline() {
+					old := val.PartialCopy()
+					val.UpdateLastActive(num)
+					ctx.db.UpdateValidator(val, old)
+				}
+			}
+		}
+		alreadyUpgradeToYouV5 = true
 	}
 }
 
@@ -151,28 +183,45 @@ func rewardsToPool(ctx *context) {
 	// distributes the rewards to block-proposer and the pools of other role of validators
 	proposer := ctx.db.GetValidatorByMainAddr(ctx.header.Coinbase)
 	if proposer == nil {
-		// an validator is removed from validators set only when it's total staking is zero,
+		// an validator is removed from validators set only when its total staking is zero,
 		// and there's a WithdrawDelay when it do a withdraw, and the WithdrawDelay MUST greater then the StakeLookBack,
 		// so, the proposer MUST exist.
 		logging.Crit("SHOULD NOT HAPPENED. proposer not in the current validators set", "blockNumber", ctx.header.Number, "coinbase", ctx.header.Coinbase.String())
 	}
-	for role, info := range roleRewards {
-		if role == proposer.Role {
-			// proposer got the whole rewards of its role
-			oldVal := proposer.PartialCopy()
-			proposer.AddTotalRewards(info.rewards)
-			ctx.db.UpdateValidator(proposer, oldVal)
-			ctx.receipt.Logs = append(ctx.receipt.Logs, &types.Log{
-				Address:     params.StakingModuleAddress,
-				Topics:      []common.Hash{common.StringToHash(LogTopicProposerRewards), proposer.MainAddress().Hash()},
-				Data:        common.BigToHash(info.rewards).Bytes(),
-				BlockNumber: ctx.header.Number.Uint64(),
-			})
-		} else {
-			// add to role stat's pool
-			initStat.GetByRole(role).AddRewards(info.rewards)
+
+	// starting from YouProtocol version V5, the proposer will get all rewards for chambers.
+	proposerReward := new(big.Int)
+	oldVal := proposer.PartialCopy()
+	if ctx.config.Version >= params.YouV5 {
+		for role, info := range roleRewards {
+			if role == params.RoleHouse {
+				initStat.GetByRole(role).AddRewards(info.rewards)
+			} else {
+				proposerReward.Add(proposerReward, info.rewards)
+			}
+		}
+		proposer.UpdateLastActive(ctx.header.Number.Uint64())
+	} else {
+		for role, info := range roleRewards {
+			if role == proposer.Role {
+				// proposer got the whole rewards of its role
+				proposerReward.Add(proposerReward, info.rewards)
+			} else {
+				// add to role stat's pool
+				initStat.GetByRole(role).AddRewards(info.rewards)
+			}
 		}
 	}
+	// updates proposer's reward
+	proposer.AddTotalRewards(proposerReward)
+	ctx.db.UpdateValidator(proposer, oldVal)
+	ctx.receipt.Logs = append(ctx.receipt.Logs, &types.Log{
+		Address:     params.StakingModuleAddress,
+		Topics:      []common.Hash{common.StringToHash(LogTopicProposerRewards), proposer.MainAddress().Hash()},
+		Data:        common.BigToHash(proposerReward).Bytes(),
+		BlockNumber: ctx.header.Number.Uint64(),
+	})
+
 	// collect the global residue
 	initStat.GetByKind(params.KindValidator).SetRewardsResidue(residue)
 }
@@ -183,6 +232,9 @@ func (s *Staking) endStakingPeriod(ctx *context, txs []*types.Transaction) (err 
 		// not the end of a staking period
 		return nil
 	}
+
+	// YouV5 inactivity slashing (only for chamber validators)
+	inactivitySlashingYouV5(ctx)
 
 	// distributes rewards to each account
 	var settled map[common.Address]struct{}
@@ -250,7 +302,12 @@ func (s *Staking) distributeRewards(ctx *context) (map[common.Address]struct{}, 
 	currRound := ctx.header.Number.Uint64()
 	forceSettleGap := ctx.config.MaxRewardsPeriod * ctx.config.StakingTrieFrequency
 	// do distribute
-	allValidators := ctx.db.GetValidators().List()
+	var allValidators []*state.Validator
+	if ctx.header.CurrVersion >= params.YouV5 {
+		allValidators = ctx.db.GetValidatorsForUpdate()
+	} else {
+		allValidators = ctx.db.GetValidators().List()
+	}
 	for _, val := range allValidators {
 		if val.IsOffline() {
 			settleValidatorRewards(ctx, val, currRound)

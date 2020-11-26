@@ -134,6 +134,13 @@ func Uint64ToBytes(i uint64) []byte {
 	return []byte{0} // will not run to here
 }
 
+// CompactBytesToUint64 decodes a big-endian compact byte slice to uint64
+func CompactBytesToUint64(b []byte) uint64 {
+	enc := make([]byte, 8)
+	copy(enc[8-len(b):], b)
+	return binary.BigEndian.Uint64(enc)
+}
+
 // Uint64ToBytes encodes i as a big-endian compact byte slice
 func Uint16ToBytes(i uint16) []byte {
 	if i == 0 {

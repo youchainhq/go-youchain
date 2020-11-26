@@ -223,3 +223,16 @@ func DecodeLogDataFromBytes(data []byte) (topic string, tags []string, payload i
 	}
 	return "", nil, nil, errors.New("unknown topic")
 }
+
+type SlashDataV5 struct {
+	Type         uint8                  `json:"type"`
+	MainAddress  common.Address         `json:"mainAddress"`
+	Total        *big.Int               `json:"penaltyAmount"` // total
+	FromWithdraw []*SlashWithdrawRecord `json:"fromWithdraw"`  // from withdraw records
+	FromDeposit  []*PenaltyRecord       `json:"fromDeposit"`
+	Evidence     interface{}            `json:"evidence"` // confirmed evidence
+}
+type PenaltyRecord struct {
+	Address common.Address `json:"address"`
+	Amount  *big.Int       `json:"amount"`
+}

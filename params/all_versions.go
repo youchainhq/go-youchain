@@ -183,6 +183,18 @@ func mainNetProtocols() VersionsMap {
 	v4.Version = YouV4
 	versionMap[v4.Version] = v4
 
+	// YouV5 is the first permission-less version for validators of Chamber.
+	v5 := v4.DeepCopy()
+	v4.ApprovedUpgradeVersion = YouV5
+	versionMap[v4.Version] = v4
+
+	v5.SignatureRequired[RoleChancellor] = false
+	v5.SignatureRequired[RoleSenator] = false
+	v5.Version = YouV5
+	v5.InactivityPenaltyWaitRounds = 512
+	v5.PenaltyFractionForInactive = 0
+	versionMap[v5.Version] = v5
+
 	return versionMap
 }
 
@@ -295,6 +307,18 @@ func testNetProtocols() VersionsMap {
 
 	v4.Version = YouV4
 	versionMap[v4.Version] = v4
+
+	// YouV5 is the first permission-less version for validators of Chamber.
+	v5 := v4.DeepCopy()
+	v4.ApprovedUpgradeVersion = YouV5
+	versionMap[v4.Version] = v4
+
+	v5.SignatureRequired[RoleChancellor] = false
+	v5.SignatureRequired[RoleSenator] = false
+	v5.Version = YouV5
+	v5.InactivityPenaltyWaitRounds = 256
+	v5.PenaltyFractionForInactive = 1
+	versionMap[v5.Version] = v5
 
 	return versionMap
 }
@@ -409,6 +433,18 @@ func protocolsForTestCase() VersionsMap {
 
 	v4.Version = YouV4
 	versionMap[v4.Version] = v4
+
+	// YouV5 is the first permission-less version for validators of Chamber.
+	v5 := v4.DeepCopy()
+	v4.ApprovedUpgradeVersion = YouV5
+	versionMap[v4.Version] = v4
+
+	v5.SignatureRequired[RoleChancellor] = false
+	v5.SignatureRequired[RoleSenator] = false
+	v5.Version = YouV5
+	v5.InactivityPenaltyWaitRounds = 32
+	v5.PenaltyFractionForInactive = 1
+	versionMap[v5.Version] = v5
 
 	return versionMap
 }

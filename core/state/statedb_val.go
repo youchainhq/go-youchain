@@ -137,6 +137,7 @@ func (st *StateDB) getValidatorsStat() (*ValidatorsStat, error) {
 }
 
 // GetValidators 获取全部 validator 集合
+// There's an in-memory cache for the results, so the results must be used as read-only.
 func (st *StateDB) GetValidators() *Validators {
 	if st.validatorIndex == nil || st.validatorIndex.Empty() {
 		st.getValidatorsIndex()
@@ -158,6 +159,24 @@ func (st *StateDB) GetValidators() *Validators {
 	} else {
 		return set.(*Validators)
 	}
+}
+
+func (st *StateDB) GetValidatorsForUpdate() []*Validator {
+	if st.validatorIndex == nil || st.validatorIndex.Empty() {
+		st.getValidatorsIndex()
+	}
+	vals := make([]*Validator, 0)
+	for _, addr := range st.validatorIndex.List() {
+		val, exists := st.validatorObjects.Load(addr)
+		if !exists {
+			val = st.getValidator(addr)
+			if val == nil {
+				panic(fmt.Errorf("validator %s not exist", addr.String()))
+			}
+		}
+		vals = append(vals, val.(*Validator))
+	}
+	return vals
 }
 
 // saveValidatorsIndex save all validator's address to in-memory trie

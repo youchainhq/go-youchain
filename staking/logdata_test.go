@@ -17,6 +17,7 @@
 package staking
 
 import (
+	"github.com/stretchr/testify/require"
 	"math/big"
 	"testing"
 
@@ -81,4 +82,24 @@ func TestNewSlashData(t *testing.T) {
 	assert.Equal(t, roundIndex, dbs.RoundIndex)
 	assert.Equal(t, 2, len(dbs.Signs))
 	assert.Equal(t, mainAddress, data2.Records[0].Record.Validator)
+}
+
+func TestSlashDataV5(t *testing.T) {
+	data := &SlashDataV5{
+		Type:         EventTypeInactive,
+		MainAddress:  common.Address{0x11, 0x22},
+		Total:        nil,
+		FromWithdraw: nil,
+		FromDeposit:  nil,
+		Evidence:     nil,
+	}
+	bs, err := rlp.EncodeToBytes(data)
+	require.NoError(t, err)
+	data2 := &SlashDataV5{}
+	err = rlp.DecodeBytes(bs, data2)
+	require.NoError(t, err)
+	require.Equal(t, data.Type, data2.Type)
+	bs2, err2 := rlp.EncodeToBytes(data)
+	require.NoError(t, err2)
+	require.Equal(t, bs, bs2)
 }

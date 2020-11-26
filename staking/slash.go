@@ -225,7 +225,7 @@ func (s *Staking) processInactive(config *params.YouParams, currentDB *state.Sta
 		}
 
 		penaltyAmount := new(big.Int).Div(new(big.Int).Mul(val.Token, new(big.Int).SetUint64(config.PenaltyFractionForInactive)), big.NewInt(100))
-		totalPenalty, affectedRecords := doPenalize(config, EvidenceTypeInactive, currentDB, header, val, penaltyAmount, inactive.Round)
+		totalPenalty, affectedRecords, _ := doPenalize(config, EvidenceTypeInactive, currentDB, header, val, penaltyAmount, inactive.Round)
 
 		// penalty
 		if totalPenalty.Cmp(bigZero) > 0 {
@@ -301,7 +301,7 @@ func (s *Staking) processDoubleSign(config *params.YouParams, currentDB *state.S
 		doubleSignedValidators[signerAddr] = struct{}{}
 
 		penaltyAmount := new(big.Int).Div(new(big.Int).Mul(val.Token, new(big.Int).SetUint64(config.PenaltyFractionForDoubleSign)), big.NewInt(100))
-		totalPenalty, affectedRecords := doPenalize(config, EvidenceTypeDoubleSign, currentDB, header, val, penaltyAmount, doubleSign.Round.Uint64())
+		totalPenalty, affectedRecords, _ := doPenalize(config, EvidenceTypeDoubleSign, currentDB, header, val, penaltyAmount, doubleSign.Round.Uint64())
 
 		var affected int
 		// penalty
@@ -336,7 +336,7 @@ func (s *Staking) processDoubleSign(config *params.YouParams, currentDB *state.S
 	}
 }
 
-func doPenalize(config *params.YouParams, typ string, currentDB *state.StateDB, header *types.Header, val *state.Validator, penaltyAmount *big.Int, happenedRound uint64) (totalPenalty *big.Int, affectedRecords []*SlashWithdrawRecord) {
+func doPenalize(config *params.YouParams, typ string, currentDB *state.StateDB, header *types.Header, val *state.Validator, penaltyAmount *big.Int, happenedRound uint64) (totalPenalty *big.Int, affectedRecords []*SlashWithdrawRecord, pRecords []*PenaltyRecord) {
 	totalPenalty = new(big.Int)
 	// distribute penalty to each involved account
 	// for validator itself, should calc the risk obligation
@@ -424,6 +424,10 @@ func doPenalize(config *params.YouParams, typ string, currentDB *state.StateDB, 
 			setActual(val.SelfToken, selfPenalty, fromDeposit)
 			if fromDeposit.Sign() > 0 {
 				updateCounter(fromDeposit, newVal, newVal.SelfToken, newVal.SelfStake)
+				pRecords = append(pRecords, &PenaltyRecord{
+					Address: val.MainAddress(),
+					Amount:  new(big.Int).Set(fromDeposit),
+				})
 			}
 		}
 
@@ -439,6 +443,10 @@ func doPenalize(config *params.YouParams, typ string, currentDB *state.StateDB, 
 				if fromDeposit.Sign() > 0 {
 					updateCounter(fromDeposit, newVal, d.Token, d.Stake)
 					updatedDFrom = append(updatedDFrom, d) //cache
+					pRecords = append(pRecords, &PenaltyRecord{
+						Address: d.Delegator,
+						Amount:  new(big.Int).Set(fromDeposit),
+					})
 				}
 			}
 		}
@@ -468,7 +476,7 @@ func doPenalize(config *params.YouParams, typ string, currentDB *state.StateDB, 
 		"token", newVal.Token, "stake", newVal.Stake,
 		"penalty", totalPenalty, "affected", len(affectedRecords),
 		"l1", val.LastInactive, "l2", newVal.LastInactive, "success", success)
-	return totalPenalty, affectedRecords
+	return
 }
 
 func exportDoubleSigner(doubleSign EvidenceDoubleSign, hashPairs []hashSignPair) common.Address {

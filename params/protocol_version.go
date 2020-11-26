@@ -28,6 +28,8 @@ const (
 	YouV3 = YouVersion(3)
 	// YouV4 fixes a bug on gas used for a failed staking-transaction.
 	YouV4 = YouVersion(4)
+	// YouV5 is the first permission-less version for validators of Chamber.
+	YouV5 = YouVersion(5)
 )
 
 // !!! ********************* !!!
@@ -36,4 +38,4 @@ const (
 
 // YouCurrentVersion is the latest version and should be used
 // when a specific version is not provided.
-const YouCurrentVersion = YouV4
+const YouCurrentVersion = YouV5

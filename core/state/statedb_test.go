@@ -407,3 +407,45 @@ func TestStateDB_DeleteEmptyValidator(t *testing.T) {
 	require.EqualValues(t, valRoot, valRoot2)
 
 }
+
+func TestStateDB_GetValidatorsForUpdate(t *testing.T) {
+	db := youdb.NewMemDatabase()
+	num := 3
+	addrs := make([]common.Address, num)
+	privateKeys := make([]*ecdsa.PrivateKey, num)
+	pubKeys := make([][]byte, num)
+	pubAddress := make([]common.Address, num)
+	for i := 0; i < num; i++ {
+		addrs[i] = common.BigToAddress(big.NewInt(int64(i)))
+
+		key, _ := crypto.GenerateKey()
+		privateKeys[i] = key
+		pubKeys[i] = crypto.CompressPubkey(&key.PublicKey)
+		pubAddress[i] = crypto.PubkeyToAddress(key.PublicKey)
+	}
+	st, _ := New(common.Hash{}, common.Hash{}, common.Hash{}, NewDatabase(db))
+	for i := 0; i < num; i++ {
+		_ = st.CreateValidator(addrs[i].String(), addrs[i], addrs[i], params.RoleChancellor, pubKeys[i], pubKeys[i], big.NewInt(100000), big.NewInt(100000), params.AcceptDelegation, 2000, 1000, params.ValidatorOnline)
+	}
+
+	st.Finalise(true)
+
+	//test update iteratively
+	vals := st.GetValidatorsForUpdate()
+	for i, v := range vals {
+		if i&1 == 0 {
+			old := v.PartialCopy()
+			v.UpdateLastActive(100)
+			st.UpdateValidator(v, old)
+		} else {
+			newVal := v.PartialCopy()
+			newVal.UpdateLastActive(100)
+			st.UpdateValidator(newVal, v)
+		}
+	}
+
+	// does the updates takes effects?
+	for _, v := range st.GetValidatorsForUpdate() {
+		assert.Equal(t, uint64(100), v.LastActive())
+	}
+}
