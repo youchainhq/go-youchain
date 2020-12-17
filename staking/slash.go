@@ -162,14 +162,18 @@ func (s *Staking) processEvidences(config *params.YouParams, currentDB *state.St
 	doubleSignedValidators := make(map[common.Address]struct{})
 	for _, evidence := range evidences {
 		switch evidence.Type {
+		case EvidenceTypeDoubleSignV5:
+			s.processDoubleSignV5(config, currentDB, header, parentHeight.Uint64(), evidence, receipt, processResult, doubleSignedValidators)
 		default:
 			log.Warn("ignored unknown evidence type", "type", evidence.Type)
 
-		case EvidenceTypeDoubleSign:
-			s.processDoubleSign(config, currentDB, header, parentHeight, evidence, receipt, processResult, doubleSignedValidators)
+			// Currently only EvidenceTypeDoubleSignV5 will take effects. (2020-12-15)
 
-		case EvidenceTypeInactive:
-			s.processInactive(config, currentDB, header, parentHeight, evidence, receipt, processResult)
+			//case EvidenceTypeDoubleSign:
+			//	s.processDoubleSign(config, currentDB, header, parentHeight, evidence, receipt, processResult, doubleSignedValidators)
+			//
+			//case EvidenceTypeInactive:
+			//	s.processInactive(config, currentDB, header, parentHeight, evidence, receipt, processResult)
 		}
 	}
 	log.Debug("processEvidencesResult", "height", header.Number, "confirmed", len(processResult.confirmedEvidences), "pending", len(processResult.pendingEvidences), "affected", len(processResult.affectedValidators))

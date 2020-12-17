@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/youchainhq/go-youchain/consensus"
+	"github.com/youchainhq/go-youchain/core/state"
 	"github.com/youchainhq/go-youchain/core/types"
 	"github.com/youchainhq/go-youchain/logging"
 	"github.com/youchainhq/go-youchain/params"
@@ -254,6 +255,26 @@ func (bc *BlockChain) VersionForRound(r uint64) (*params.YouParams, error) {
 
 func (bc *BlockChain) VersionForRoundWithParents(r uint64, parents []*types.Header) (*params.YouParams, error) {
 	return bc.hc.VersionForRoundWithParents(r, parents)
+}
+
+func (bc *BlockChain) LookBackVldReaderForRound(r uint64, isCert bool) (state.ValidatorReader, error) {
+	yp, err := bc.hc.VersionForRound(r)
+	if err != nil {
+		return nil, err
+	}
+	lookBack := uint64(0)
+	cfg := yp.StakeLookBack
+	if isCert {
+		cfg = params.ACoCHTFrequency * 2
+	}
+	if r > cfg {
+		lookBack = r - cfg
+	}
+	lookBackHeader := bc.GetHeaderByNumber(lookBack)
+	if lookBackHeader == nil {
+		return nil, fmt.Errorf("header %d not exists", lookBack)
+	}
+	return bc.GetVldReader(lookBackHeader.ValRoot)
 }
 
 func (hc *HeaderChain) VersionForRound(r uint64) (*params.YouParams, error) {

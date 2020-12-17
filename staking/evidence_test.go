@@ -105,30 +105,36 @@ func TestEvidencesPubSub(t *testing.T) {
 }
 
 func TestEventDoubleSign(t *testing.T) {
-	e := EvidenceDoubleSign{
-		Round:      big.NewInt(1024),
+	e := EvidenceDoubleSignV5{
+		Round:      1024,
 		RoundIndex: 128,
-		Signs:      map[common.Hash][]byte{},
+		SignerIdx:  1,
+		Signs: []*SignInfo{
+			{
+				Hash: common.BytesToHash([]byte{0x64}),
+				Sign: []byte{0x64},
+			},
+			{
+				Hash: common.BytesToHash([]byte{0x65}),
+				Sign: []byte{0x65},
+			},
+		},
 	}
-	hash1 := common.BigToHash(big.NewInt(100))
-	hash2 := common.BigToHash(big.NewInt(101))
-	e.Signs[hash1] = hash1.Bytes()
-	e.Signs[hash2] = hash2.Bytes()
 
 	ebs, err := rlp.EncodeToBytes(e)
 	assert.NoError(t, err)
 
 	fmt.Println(hexutil.Encode(ebs))
 
-	e2 := EvidenceDoubleSign{}
+	e2 := EvidenceDoubleSignV5{}
 	err = rlp.DecodeBytes(ebs, &e2)
 	assert.NoError(t, err)
 
-	assert.Equal(t, e.Round.Uint64(), e2.Round.Uint64())
+	assert.Equal(t, e.Round, e2.Round)
 	assert.Equal(t, e.RoundIndex, e2.RoundIndex)
 	assert.Equal(t, 2, len(e2.Signs))
-	for e := range e2.Signs {
-		fmt.Println("hash", e.String(), "sign", hexutil.Bytes(e2.Signs[e]).String())
+	for _, e := range e2.Signs {
+		fmt.Println("hash", e.Hash.String(), "sign", hexutil.Bytes(e.Sign).String())
 	}
 }
 

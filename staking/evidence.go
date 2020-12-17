@@ -26,10 +26,11 @@ import (
 )
 
 const (
-	//EvidenceTypeDoubleSign name of douplicate vote
+	//EvidenceTypeDoubleSign name of duplicate vote
 	EvidenceTypeDoubleSign = "doublesign"
 	//EvidenceTypeInactive name of inactive
-	EvidenceTypeInactive = "inactive"
+	EvidenceTypeInactive     = "inactive"
+	EvidenceTypeDoubleSignV5 = "doublesignv5"
 )
 
 //Evidence the evidence of validator's action
@@ -48,6 +49,8 @@ func NewEvidence(data interface{}) Evidence {
 		typ = EvidenceTypeDoubleSign
 	case EvidenceInactive:
 		typ = EvidenceTypeInactive
+	case EvidenceDoubleSignV5:
+		typ = EvidenceTypeDoubleSignV5
 	}
 	body, err := rlp.EncodeToBytes(data)
 	if err != nil {
@@ -67,7 +70,8 @@ var (
 	_ rlp.Encoder = &EvidenceDoubleSign{}
 )
 
-//EvidenceDoubleSign data of dup-vote
+// EvidenceDoubleSign data of dup-vote
+// Deprecated: using EvidenceDoubleSignV5 instead.
 type EvidenceDoubleSign struct {
 	Round      *big.Int
 	RoundIndex uint32
@@ -122,4 +126,18 @@ func (e EvidenceDoubleSign) EncodeRLP(w io.Writer) error {
 type EvidenceInactive struct {
 	Round      uint64
 	Validators []common.Address
+}
+
+// EvidenceDoubleSignV5 is the data of dup-vote with bls signature.
+type EvidenceDoubleSignV5 struct {
+	Round      uint64
+	RoundIndex uint32
+	SignerIdx  uint32
+	VoteType   uint8
+	Signs      []*SignInfo
+}
+
+type SignInfo struct {
+	Hash common.Hash
+	Sign []byte
 }

@@ -47,6 +47,7 @@ type GetCurrentParamsFn func() *params.CaravelParams
 type paramsManager interface {
 	CurrentCaravelParams() *params.CaravelParams
 	CertificateParams(round *big.Int) (*params.CaravelParams, error)
+	CurrentYouParams() *params.YouParams
 }
 
 type VoteStatus struct {
@@ -607,17 +608,33 @@ func (v *Voter) processVoteMsg(ev VoteMsgEvent, status MsgReceivedStatus) (error
 		if voteInfoData == nil || voteType == NextIndex {
 			return nil, false
 		}
-
-		logging.Error("DoubleVote.", "Round", msg.Round, "RoundIndex", msg.RoundIndex, VoteTypeToString(voteType), params.ValidatorKindToString(validatorType),
+		yp := v.paramsMgr.CurrentYouParams()
+		if yp.Version < params.YouV5 {
+			// the penalty logic of double-vote is not working before YouV5
+			return nil, false
+		}
+		if !yp.EnableBls {
+			// TODO: implement the Double-vote logic for secp256 signature IF NECESSARY
+			return nil, false
+		}
+		logging.Warn("DoubleVote.", "Round", msg.Round, "RoundIndex", msg.RoundIndex, VoteTypeToString(voteType), params.ValidatorKindToString(validatorType),
 			"Addr", addr.String(), "Hash1", voteInfoData.Hash.String(), "Hash2", msg.BlockHash.String())
 
 		// detect malicious voting
-		signs := make(map[common.Hash][]byte)
-		signs[voteInfoData.Hash] = voteInfoData.Signature
-		signs[msg.BlockHash] = msg.Vote.Signature
-		evData := staking.EvidenceDoubleSign{
-			Round:      msg.Round,
+		signs := make([]*staking.SignInfo, 2)
+		signs[0] = &staking.SignInfo{
+			Hash: voteInfoData.Hash,
+			Sign: voteInfoData.Signature,
+		}
+		signs[1] = &staking.SignInfo{
+			Hash: msg.BlockHash,
+			Sign: msg.Vote.Signature,
+		}
+		evData := staking.EvidenceDoubleSignV5{
+			Round:      msg.Round.Uint64(),
 			RoundIndex: msg.RoundIndex,
+			SignerIdx:  msg.Vote.VoterIdx,
+			VoteType:   uint8(voteType),
 			Signs:      signs,
 		}
 		ev := staking.NewEvidence(evData)

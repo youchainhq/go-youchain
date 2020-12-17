@@ -20,22 +20,23 @@ package youapi
 import (
 	"context"
 	"encoding/binary"
+	"errors"
 	"fmt"
-	"github.com/youchainhq/go-youchain/consensus/ucon"
-	"github.com/youchainhq/go-youchain/crypto"
-	"github.com/youchainhq/go-youchain/staking"
 	"math/big"
 	"os"
 	"time"
 
+	"github.com/youchainhq/go-youchain/bls"
 	"github.com/youchainhq/go-youchain/common"
 	"github.com/youchainhq/go-youchain/common/hexutil"
 	"github.com/youchainhq/go-youchain/core/state"
 	"github.com/youchainhq/go-youchain/core/types"
+	"github.com/youchainhq/go-youchain/crypto"
 	"github.com/youchainhq/go-youchain/internal/debug"
 	"github.com/youchainhq/go-youchain/logging"
 	"github.com/youchainhq/go-youchain/rlp"
 	"github.com/youchainhq/go-youchain/rpc"
+	"github.com/youchainhq/go-youchain/staking"
 )
 
 // private api for dev
@@ -196,7 +197,12 @@ func int32ToBytes(i uint32) []byte {
 	return buf
 }
 
-func (y *PrivateDevApi) DoubleSign(ctx context.Context, skey hexutil.Bytes, next uint64) (map[string]interface{}, error) {
+func (y *PrivateDevApi) DoubleSign(ctx context.Context, skey hexutil.Bytes, blskey hexutil.Bytes, next uint64) (map[string]interface{}, error) {
+	blsmgr := bls.NewBlsManager()
+	blsSk, err := blsmgr.DecSecretKey(blskey)
+	if err != nil {
+		return nil, err
+	}
 	rawSk, err := crypto.ToECDSA(skey)
 	if err != nil {
 		return nil, err
@@ -213,28 +219,35 @@ func (y *PrivateDevApi) DoubleSign(ctx context.Context, skey hexutil.Bytes, next
 	payload0 := append(hash0.Bytes(), append(round.Bytes(), int32ToBytes(roundIndex)...)...) ////append(blockHash.Bytes(), int32ToBytes(vote.Votes)...)
 	payload1 := append(hash1.Bytes(), append(round.Bytes(), int32ToBytes(roundIndex)...)...) ////append(blockHash.Bytes(), int32ToBytes(vote.Votes)...)
 
-	signature0, err := ucon.Sign(rawSk, payload0)
+	vldReader, err := y.c.youChain.BlockChain().LookBackVldReaderForRound(round.Uint64(), false)
 	if err != nil {
 		return nil, err
 	}
-	signature1, err := ucon.Sign(rawSk, payload1)
-	if err != nil {
-		return nil, err
+	idx, exist := vldReader.GetValidators().GetIndex(consAddr)
+	if !exist {
+		return nil, errors.New("validator not exist")
 	}
-	y.c.EventMux().AsyncPost(staking.NewEvidence(staking.EvidenceDoubleSign{
-		Round:      round,
+
+	sig0 := blsSk.Sign(payload0).Compress().Bytes()
+	sig1 := blsSk.Sign(payload1).Compress().Bytes()
+
+	y.c.EventMux().AsyncPost(staking.NewEvidence(staking.EvidenceDoubleSignV5{
+		Round:      round.Uint64(),
 		RoundIndex: 1,
-		Signs: map[common.Hash][]byte{
-			common.BigToHash(big.NewInt(1)): signature0,
-			common.BigToHash(big.NewInt(2)): signature1,
+		SignerIdx:  uint32(idx),
+		VoteType:   2,
+		Signs: []*staking.SignInfo{
+			{hash0, sig0},
+			{hash1, sig1},
 		},
 	}))
 	ret := make(map[string]interface{})
 	ret["round"] = round
 	ret["roundIndex"] = roundIndex
+	ret["signerIdx"] = idx
 	ret["signs"] = map[string]string{
-		common.BigToHash(big.NewInt(1)).String(): hexutil.Encode(signature0),
-		common.BigToHash(big.NewInt(2)).String(): hexutil.Encode(signature1),
+		common.BigToHash(big.NewInt(1)).String(): hexutil.Encode(sig0),
+		common.BigToHash(big.NewInt(2)).String(): hexutil.Encode(sig1),
 	}
 	return ret, nil
 }

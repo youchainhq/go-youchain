@@ -19,11 +19,25 @@
 package staking
 
 import (
+	"encoding/binary"
 	"github.com/youchainhq/go-youchain/common"
+	"github.com/youchainhq/go-youchain/common/hexutil"
+	"github.com/youchainhq/go-youchain/core/state"
 	"github.com/youchainhq/go-youchain/core/types"
+	"github.com/youchainhq/go-youchain/logging"
 	"github.com/youchainhq/go-youchain/params"
 	"github.com/youchainhq/go-youchain/rlp"
 	"math/big"
+)
+
+// ucon vote type
+const (
+	VoteNone uint8 = iota
+	Propose
+	Prevote
+	Precommit
+	NextIndex
+	Certificate
 )
 
 func inactivitySlashingYouV5(ctx *context) {
@@ -71,5 +85,109 @@ func inactivitySlashingYouV5(ctx *context) {
 			Data:        rlpData,
 			BlockNumber: num,
 		})
+	}
+}
+
+func (s *Staking) processDoubleSignV5(config *params.YouParams, currentDB *state.StateDB, header *types.Header, parentHeight uint64, evidence Evidence, receipt *types.Receipt, result *processedEvidencesResult, doubleSignedValidators map[common.Address]struct{}) {
+	var doubleSign EvidenceDoubleSignV5
+	if err := rlp.DecodeBytes(evidence.Data, &doubleSign); err != nil {
+		logging.Error("rlp decode EvidenceDoubleSignV5 failed", "data", hexutil.Encode(evidence.Data), "err", err)
+		return
+	}
+
+	if len(doubleSign.Signs) < 2 {
+		return
+	}
+
+	log.Info("slashing", "type", EvidenceTypeDoubleSignV5, "parent", parentHeight, "eRound", doubleSign.Round, "eRoundIndex", doubleSign.RoundIndex, "sinerIdx", doubleSign.SignerIdx, "signs", len(doubleSign.Signs))
+	switch {
+	case doubleSign.Round == parentHeight:
+		var signerAddr common.Address
+		if addr := evidence.addr.Load(); addr != nil {
+			signerAddr = addr.(common.Address)
+		} else {
+			vldReader, err := s.blockChain.LookBackVldReaderForRound(doubleSign.Round, doubleSign.VoteType == Certificate)
+			if err != nil {
+				logging.Warn("processDoubleSignV5 LookBackVldReaderForRound", "err", err)
+				return
+			}
+			vs := vldReader.GetValidators()
+			signer, exist := vs.GetByIndex(int(doubleSign.SignerIdx))
+			if !exist {
+				logging.Warn("invalid voter index", "idx", doubleSign.SignerIdx, "validatorsLen", vs.Len())
+				return
+			}
+			pk, err := s.blsMgr.DecPublicKey(signer.BlsPubKey)
+			if err != nil {
+				return
+			}
+
+			var buf = make([]byte, 4)
+			binary.BigEndian.PutUint32(buf, doubleSign.RoundIndex)
+			roundbuf := append(new(big.Int).SetUint64(doubleSign.Round).Bytes(), buf...)
+			for _, info := range doubleSign.Signs {
+				payload := append(info.Hash.Bytes(), roundbuf...)
+				sig, err := s.blsMgr.DecSignature(info.Sign)
+				if err != nil {
+					return
+				}
+				err = pk.Verify(payload, sig)
+				if err != nil {
+					return
+				}
+			}
+
+			signerAddr = signer.MainAddress()
+			evidence.addr.Store(signerAddr)
+		}
+
+		if signerAddr == (common.Address{}) {
+			return
+		}
+
+		if _, ok := doubleSignedValidators[signerAddr]; ok {
+			return
+		}
+
+		val := currentDB.GetValidatorByMainAddr(signerAddr)
+		if val == nil {
+			return
+		}
+
+		doubleSignedValidators[signerAddr] = struct{}{}
+
+		penaltyAmount := new(big.Int).Div(new(big.Int).Mul(val.Token, new(big.Int).SetUint64(config.PenaltyFractionForDoubleSign)), big.NewInt(100))
+		totalPenalty, affectedRecords, _ := doPenalize(config, EvidenceTypeDoubleSign, currentDB, header, val, penaltyAmount, doubleSign.Round)
+
+		var affected int
+		// penalty
+		if totalPenalty.Cmp(bigZero) > 0 {
+			affected++
+			result.affectedValidators = append(result.affectedValidators, &signerAddr)
+			if slashLogData, err := NewSlashData(EventTypeDoubleSign, val.MainAddress(), totalPenalty, affectedRecords, &evidence); err == nil {
+				receipt.Logs = append(receipt.Logs, &types.Log{
+					Address:     params.StakingModuleAddress,
+					Topics:      []common.Hash{common.StringToHash(LogTopicSlashing)},
+					Data:        newLogData(LogTopicSlashing, nil, slashLogData).EncodeToBytes(),
+					BlockNumber: header.Number.Uint64(),
+				})
+			}
+		}
+
+		if affected > 0 {
+			result.confirmedEvidences = append(result.confirmedEvidences, evidence)
+		} else {
+			result.deletedEvidences = append(result.deletedEvidences, evidence)
+		}
+
+	case doubleSign.Round > parentHeight:
+		result.pendingEvidences = append(result.pendingEvidences, evidence) // future evidences
+
+	case doubleSign.Round < parentHeight:
+		if parentHeight-doubleSign.Round <= config.MaxEvidenceExpiredIn {
+			result.pendingEvidences = append(result.pendingEvidences, evidence)
+		} else {
+			log.Warn("evidence expired", "round", doubleSign.Round, "roundIndex", doubleSign.RoundIndex) // discard expired evidences
+		}
 	}
 }

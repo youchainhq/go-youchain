@@ -191,7 +191,7 @@ func mainNetProtocols() VersionsMap {
 	v5.SignatureRequired[RoleChancellor] = false
 	v5.SignatureRequired[RoleSenator] = false
 	v5.Version = YouV5
-	v5.InactivityPenaltyWaitRounds = 512
+	v5.InactivityPenaltyWaitRounds = 1024
 	v5.PenaltyFractionForInactive = 0
 	versionMap[v5.Version] = v5
 

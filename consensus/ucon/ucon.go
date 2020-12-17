@@ -67,7 +67,7 @@ type Server struct {
 	roundIndex     uint32
 	nextIndex      uint32
 
-	currRoundParams *params.CaravelParams
+	currRoundParams *params.YouParams
 	currParamsLock  sync.RWMutex
 
 	// test speed
@@ -297,7 +297,7 @@ func (s *Server) StartNewRound(newRound bool) error {
 		return err
 	}
 	s.currParamsLock.Lock()
-	s.currRoundParams = &yp.CaravelParams
+	s.currRoundParams = yp
 	s.msgHandler.UpdateAllowedFutureMsgTime(yp.AllowedFutureBlockTime)
 	s.currParamsLock.Unlock()
 
@@ -313,9 +313,9 @@ func (s *Server) StartNewRound(newRound bool) error {
 // CurrentCaravelParams returns current round caravel parameters
 func (s *Server) CurrentCaravelParams() *params.CaravelParams {
 	s.currParamsLock.RLock()
-	cp := s.currRoundParams
+	yp := s.currRoundParams
 	s.currParamsLock.RUnlock()
-	return cp
+	return &yp.CaravelParams
 }
 
 func (s *Server) CertificateParams(round *big.Int) (*params.CaravelParams, error) {
@@ -331,6 +331,13 @@ func (s *Server) CertificateParams(round *big.Int) (*params.CaravelParams, error
 		logging.Crit("CertificateParams: version not found", "round", round, "certHeaderNum", header.Number, "version", header.CurrVersion)
 	}
 	return &yp.CaravelParams, nil
+}
+
+func (s *Server) CurrentYouParams() *params.YouParams {
+	s.currParamsLock.RLock()
+	yp := s.currRoundParams
+	s.currParamsLock.RUnlock()
+	return yp
 }
 
 // NewChainHead implements consensus.Ucon.NewChainHead

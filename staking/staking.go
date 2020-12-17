@@ -20,6 +20,7 @@ import (
 	"errors"
 	"sync"
 
+	"github.com/youchainhq/go-youchain/bls"
 	"github.com/youchainhq/go-youchain/core"
 	"github.com/youchainhq/go-youchain/event"
 	"github.com/youchainhq/go-youchain/params"
@@ -32,6 +33,7 @@ type Staking struct {
 	eventMux     *event.TypeMux
 	evidences    []Evidence
 	votesWatcher *votesWatcher
+	blsMgr       bls.BlsManager
 	mutex        sync.RWMutex // global mutex for locking chain operations
 	quit         chan struct{}
 }
@@ -39,6 +41,7 @@ type Staking struct {
 //NewStaking create a staking obj
 func NewStaking(mux *event.TypeMux) *Staking {
 	return &Staking{
+		blsMgr:    bls.NewBlsManager(),
 		eventMux:  mux,
 		evidences: []Evidence{},
 		quit:      make(chan struct{}),

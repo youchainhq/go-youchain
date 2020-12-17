@@ -154,3 +154,8 @@ func (f *fakeParamsMgr) CertificateParams(round *big.Int) (*params.CaravelParams
 func (f *fakeParamsMgr) GetLookBackVldReader(cp *params.CaravelParams, num *big.Int, lbType params.LookBackType) (state.ValidatorReader, error) {
 	return state.New(common.Hash{}, common.Hash{}, common.Hash{}, state.NewDatabase(f.db))
 }
+
+func (f *fakeParamsMgr) CurrentYouParams() *params.YouParams {
+	yp := params.Versions[params.YouCurrentVersion]
+	return &yp
+}

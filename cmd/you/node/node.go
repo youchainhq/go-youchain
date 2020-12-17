@@ -150,8 +150,7 @@ func GetId(nodeConfig *node.Config) string {
 
 func StartNode(stack *node.Node) {
 	if err := stack.Start(); err != nil {
-		logging.Error("Error starting protocol stack", "err", err)
-		os.Exit(1)
+		logging.Crit("Error starting protocol stack", "err", err)
 	}
 	go func() {
 		sigc := make(chan os.Signal, 1)
