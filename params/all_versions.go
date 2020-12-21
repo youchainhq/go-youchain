@@ -397,10 +397,10 @@ func protocolsForTestCase() VersionsMap {
 			MasterAddress: common.HexToAddress("0x35049C793fd29605CdDcFc896620A4522b6f7496"),
 		},
 
-		UpgradeVoteRounds:    1000,
-		UpgradeThreshold:     900,
-		MinUpgradeWaitRounds: 1000,
-		MaxUpgradeWaitRounds: 1500,
+		UpgradeVoteRounds:    100,
+		UpgradeThreshold:     90,
+		MinUpgradeWaitRounds: 100,
+		MaxUpgradeWaitRounds: 150,
 	}
 
 	// v1 can updates to v2
@@ -422,7 +422,7 @@ func protocolsForTestCase() VersionsMap {
 	v2.ApprovedUpgradeVersion = YouV3
 	versionMap[v2.Version] = v2
 	v3.SubsidyThreshold = 15 * YOU
-	v3.UpgradeThreshold = 800 // will take effect on the next upgrade
+	v3.UpgradeThreshold = 80 // will take effect on the next upgrade
 	v3.Version = YouV3
 	versionMap[v3.Version] = v3
 
