@@ -20,6 +20,7 @@ package node
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/stretchr/testify/require"
 	"github.com/youchainhq/go-youchain/local"
 	"io/ioutil"
 	"math/big"
@@ -149,6 +150,46 @@ func TestSortHistoryKeys(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+}
+
+func TestRecoverKeysForTest(t *testing.T) {
+	t.SkipNow()
+	str := `{
+    "uconkey": "aa6b181a8e24d40beaa6fd4a09f0dbf865ee61cdefc266fd3822d746d0437a5c",
+    "uconvalidator": 1,
+    "stake": 162000,
+    "coinbase": "0x4f327d827056f1f97caCdB6F2a0618e6D5cB1530",
+    "blssignkey": "539874d00017492539b9a604331e2ebb6e65dc296bb4ee3551d48bfc96fd4efe"
+  }`
+	var keyInfo ukey
+	err := json.Unmarshal([]byte(str), &keyInfo)
+	require.NoError(t, err)
+	sk, err := crypto.HexToECDSA(keyInfo.Uconkey)
+	require.NoError(t, err)
+	addr := crypto.PubkeyToAddress(sk.PublicKey)
+	stake := big.NewInt(1580000)
+	blsMgr := bls.NewBlsManager()
+	blssk, err := blsMgr.DecSecretKeyHex(keyInfo.BLSSignkey)
+	require.NoError(t, err)
+	blspkcp, err := blssk.PubKey()
+	require.NoError(t, err)
+	v := core.GenesisValidator{
+		OperatorAddress: addr,
+		Coinbase:        addr,
+		Token:           common.Big1().Mul(stake, params.StakeUint),
+		MainPubKey:      crypto.CompressPubkey(&sk.PublicKey),
+		BlsPubKey:       blspkcp.Compress().Bytes(),
+		Role:            params.ValidatorRole(2),
+		Status:          params.ValidatorOnline,
+	}
+
+	m := make(map[common.Address]core.GenesisValidator)
+	m[addr] = v
+
+	bs, err := json.Marshal(m)
+	require.NoError(t, err)
+
+	fmt.Println(string(bs))
 }
 
 func TestGenContractCreation(t *testing.T) {
