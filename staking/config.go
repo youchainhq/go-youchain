@@ -25,38 +25,38 @@ import (
 
 const (
 	//Module name of the module
-	Module = "staking"
+	Module = "staking" // 0x000000000000000000000000000000000000000000000000007374616b696e67
 
 	//logs topic name
-	LogTopicCreate         = "create"
-	LogTopicUpdate         = "update"
-	LogTopicDeposit        = "deposit"
-	LogTopicDepositFailed  = "deposit_failed"
-	LogTopicWithdraw       = "withdraw"
-	LogTopicWithdrawEffect = "withdraw_effect"
+	LogTopicCreate         = "create"          // 0x0000000000000000000000000000000000000000000000000000637265617465
+	LogTopicUpdate         = "update"          // 0x0000000000000000000000000000000000000000000000000000757064617465
+	LogTopicDeposit        = "deposit"         // 0x000000000000000000000000000000000000000000000000006465706f736974
+	LogTopicDepositFailed  = "deposit_failed"  // 0x0000000000000000000000000000000000006465706f7369745f6661696c6564
+	LogTopicWithdraw       = "withdraw"        // 0x0000000000000000000000000000000000000000000000007769746864726177
+	LogTopicWithdrawEffect = "withdraw_effect" // 0x000000000000000000000000000000000077697468647261775f656666656374
 	// LogTopicWithdrawResult
 	// Topics[1] : operator address
 	// data:
 	// [0,19]   [20,31]
 	// receipt  arrivalAmount
-	LogTopicWithdrawResult     = "withdraw_result"
-	LogTopicRewards            = "rewards"
-	LogTopicSlashing           = "slashing"
-	LogTopicChangeStatus       = "change_status"
-	LogTopicChangeStatusFailed = "change_status_failed"
-	LogTopicSettle             = "settle"
+	LogTopicWithdrawResult     = "withdraw_result"      // 0x000000000000000000000000000000000077697468647261775f726573756c74
+	LogTopicRewards            = "rewards"              // 0x0000000000000000000000000000000000000000000000000072657761726473
+	LogTopicSlashing           = "slashing"             // 0x000000000000000000000000000000000000000000000000736c617368696e67
+	LogTopicChangeStatus       = "change_status"        // 0x000000000000000000000000000000000000006368616e67655f737461747573
+	LogTopicChangeStatusFailed = "change_status_failed" // 0x0000000000000000000000006368616e67655f7374617475735f6661696c6564
+	LogTopicSettle             = "settle"               // 0x0000000000000000000000000000000000000000000000000000736574746c65
 
 	// topics of pending delegation transaction,
 	// the "data" is a combined data as follow:
 	// 		[0,8)							[8,32)
 	// take-effects-on-which-block-number	final-delegation-tokens-after-the-transaction-take-effects (ignore it for settle)
-	LogTopicDelegationPending = "delegation_op_pending"
+	LogTopicDelegationPending = "delegation_op_pending" // 0x000000000000000000000064656c65676174696f6e5f6f705f70656e64696e67
 
-	LogTopicDelegationAddFailed = "delegation_add_failed"
-	LogTopicDelegationSubFailed = "delegation_sub_failed"
-	LogTopicDelegationSubEffect = "delegation_sub_effect"
+	LogTopicDelegationAddFailed = "delegation_add_failed" // 0x000000000000000000000064656c65676174696f6e5f6164645f6661696c6564
+	LogTopicDelegationSubFailed = "delegation_sub_failed" // 0x000000000000000000000064656c65676174696f6e5f7375625f6661696c6564
+	LogTopicDelegationSubEffect = "delegation_sub_effect" // 0x000000000000000000000064656c65676174696f6e5f7375625f656666656374
 
-	LogTopicProposerRewards = "proposer_rewards"
+	LogTopicProposerRewards = "proposer_rewards" // 0x0000000000000000000000000000000070726f706f7365725f72657761726473
 )
 
 var (

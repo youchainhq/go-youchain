@@ -142,6 +142,11 @@ youchain._extend({
 			name: 'stop',
 			call: 'dev_stop',
 		}),
+		new youchain._extend.Method({
+			name: 'doubleSign',
+			call: 'dev_doubleSign',
+			params: 3
+		}),
 	],
 	properties: []
 });

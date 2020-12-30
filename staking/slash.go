@@ -147,7 +147,10 @@ func (s *Staking) slashing(ctx *context) ([]Evidence, []Evidence, []*common.Addr
 
 	if len(confirmedEvidences) > 0 {
 		if slashData, err = rlp.EncodeToBytes(confirmedEvidences); err == nil {
+			log.Debug("slash data", "num", ctx.header.Number.Uint64(), "data", hexutil.Encode(slashData))
 			ctx.header.SlashData = slashData
+		} else {
+			log.Warn("slashing encode data failed", "err", err)
 		}
 	}
 
@@ -341,6 +344,39 @@ func (s *Staking) processDoubleSign(config *params.YouParams, currentDB *state.S
 }
 
 func doPenalize(config *params.YouParams, typ string, currentDB *state.StateDB, header *types.Header, val *state.Validator, penaltyAmount *big.Int, happenedRound uint64) (totalPenalty *big.Int, affectedRecords []*SlashWithdrawRecord, pRecords []*PenaltyRecord) {
+	var newVal *state.Validator
+	if penaltyAmount.Sign() > 0 {
+		newVal, totalPenalty, affectedRecords, pRecords = takePenalty(currentDB, val, penaltyAmount)
+	} else {
+		newVal, totalPenalty = val.PartialCopy(), penaltyAmount
+	}
+	newVal.Status = params.ValidatorOffline
+	newVal.Expelled = true
+	var expelExpired uint64
+	switch typ {
+	case EvidenceTypeDoubleSign:
+		fallthrough
+	case EvidenceTypeDoubleSignV5:
+		expelExpired = header.Number.Uint64() + config.ExpelledRoundForDoubleSign
+	case EvidenceTypeInactive:
+		expelExpired = header.Number.Uint64() + config.ExpelledRoundForInactive
+		newVal.LastInactive = header.Number.Uint64()
+	}
+	if expelExpired > newVal.ExpelExpired {
+		newVal.ExpelExpired = expelExpired
+	}
+
+	updated := currentDB.UpdateValidator(newVal, val)
+	success := currentDB.ValidatorsModified()
+	currentDB.AddBalance(config.PenaltyTo, totalPenalty)
+	log.Debug("doPenalize", "height", header.Number, "happened", happenedRound, "type", typ, "val", val.MainAddress().String(), "status", val.Status, "updated", updated,
+		"token", newVal.Token, "stake", newVal.Stake,
+		"penalty", totalPenalty, "affected", len(affectedRecords),
+		"l1", val.LastInactive, "l2", newVal.LastInactive, "success", success)
+	return
+}
+
+func takePenalty(currentDB *state.StateDB, val *state.Validator, penaltyAmount *big.Int) (newVal *state.Validator, totalPenalty *big.Int, affectedRecords []*SlashWithdrawRecord, pRecords []*PenaltyRecord) {
 	totalPenalty = new(big.Int)
 	// distribute penalty to each involved account
 	// for validator itself, should calc the risk obligation
@@ -421,7 +457,7 @@ func doPenalize(config *params.YouParams, typ string, currentDB *state.StateDB, 
 	}
 
 	// second, take penalty from staking
-	newVal := val.PartialCopy()
+	newVal = val.PartialCopy()
 	fromDeposit := fromWithdraw // just for clear
 	if penaltyAmount.Sign() > 0 {
 		if selfPenalty.Sign() > 0 {
@@ -458,28 +494,6 @@ func doPenalize(config *params.YouParams, typ string, currentDB *state.StateDB, 
 			newVal.UpdateDelegationFrom(d)
 		}
 	}
-
-	newVal.Status = params.ValidatorOffline
-	newVal.Expelled = true
-	var expelExpired uint64
-	switch typ {
-	case EvidenceTypeDoubleSign:
-		expelExpired = header.Number.Uint64() + config.ExpelledRoundForDoubleSign
-	case EvidenceTypeInactive:
-		expelExpired = header.Number.Uint64() + config.ExpelledRoundForInactive
-		newVal.LastInactive = header.Number.Uint64()
-	}
-	if expelExpired > newVal.ExpelExpired {
-		newVal.ExpelExpired = expelExpired
-	}
-
-	updated := currentDB.UpdateValidator(newVal, val)
-	success := currentDB.ValidatorsModified()
-	currentDB.AddBalance(config.PenaltyTo, totalPenalty)
-	log.Debug("doPenalize", "height", header.Number, "happened", happenedRound, "type", typ, "val", val.MainAddress().String(), "status", val.Status, "updated", updated,
-		"token", newVal.Token, "stake", newVal.Stake,
-		"penalty", totalPenalty, "affected", len(affectedRecords),
-		"l1", val.LastInactive, "l2", newVal.LastInactive, "success", success)
 	return
 }
 

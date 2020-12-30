@@ -33,8 +33,6 @@ import (
 	"github.com/youchainhq/go-youchain/params"
 )
 
-var alreadyUpgradeToYouV5 bool
-
 // tempRewardsRecord is a struct used on handling rewards.
 type tempRewardsRecord struct {
 	total, per, residue *big.Int
@@ -120,28 +118,24 @@ func EndBlock(staking *Staking) core.BlockHookFn {
 // checkAndUpgradeValidatorsToYouV5 initializes the lastProposed value of each validator on the first block of YouV5,
 // so it can be used for inactivity check.
 func checkAndUpgradeValidatorsToYouV5(ctx *context) {
-	if alreadyUpgradeToYouV5 {
+	if ctx.header.CurrVersion != params.YouV5 {
 		return
 	}
-	if ctx.header.CurrVersion > params.YouV5 {
-		alreadyUpgradeToYouV5 = true
-		return
-	}
-	if ctx.header.CurrVersion == params.YouV5 {
-		num := ctx.header.Number.Uint64()
-		parent := ctx.chain.GetHeader(ctx.header.ParentHash, num-1)
-		if parent.CurrVersion == params.YouV4 {
-			// only do once on the first YouV5 block.
-			all := ctx.db.GetValidatorsForUpdate()
-			for _, val := range all {
-				if val.Role != params.RoleHouse && val.IsOnline() {
-					old := val.PartialCopy()
-					val.UpdateLastActive(num)
-					ctx.db.UpdateValidator(val, old)
-				}
+
+	num := ctx.header.Number.Uint64()
+	parent := ctx.chain.GetHeader(ctx.header.ParentHash, num-1)
+	if parent.CurrVersion == params.YouV4 {
+		logging.Info("update current validators to YouV5", "height", num)
+		// only do once on the first YouV5 block.
+		all := ctx.db.GetValidatorsForUpdate()
+		for _, val := range all {
+			if val.Role != params.RoleHouse && val.IsOnline() {
+				old := val.PartialCopy()
+				val.UpdateLastActive(num)
+				ctx.db.UpdateValidator(val, old)
+				logging.Info("update current validator to YouV5", "mainAddr", val.MainAddress(), "role", val.Role)
 			}
 		}
-		alreadyUpgradeToYouV5 = true
 	}
 }
 
@@ -192,7 +186,7 @@ func rewardsToPool(ctx *context) {
 	// starting from YouProtocol version V5, the proposer will get all rewards for chambers.
 	proposerReward := new(big.Int)
 	oldVal := proposer.PartialCopy()
-	if ctx.config.Version >= params.YouV5 {
+	if ctx.header.CurrVersion >= params.YouV5 {
 		for role, info := range roleRewards {
 			if role == params.RoleHouse {
 				initStat.GetByRole(role).AddRewards(info.rewards)

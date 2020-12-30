@@ -41,7 +41,7 @@ const (
 )
 
 func inactivitySlashingYouV5(ctx *context) {
-	if ctx.header.CurrVersion < params.YouV5 {
+	if ctx.config.Version < params.YouV5 {
 		return
 	}
 
@@ -56,23 +56,19 @@ func inactivitySlashingYouV5(ctx *context) {
 			continue
 		}
 
-		old := val.PartialCopy()
+		logging.Warn("inactivitySlashingYouV5", "val", val.MainAddress().String(), "lastActive", val.LastActive(), "height", num, "waitRounds", waitRounds)
 		logData := SlashDataV5{
 			Type:        EventTypeInactive,
 			MainAddress: val.MainAddress(),
 		}
 		// inactive
+		penaltyAmount := new(big.Int)
 		if ctx.config.PenaltyFractionForInactive > 0 {
-			penaltyAmount := new(big.Int).Div(new(big.Int).Mul(val.Token, big.NewInt(int64(ctx.config.PenaltyFractionForInactive))), big.NewInt(100))
-			logData.Total, logData.FromWithdraw, logData.FromDeposit = doPenalize(ctx.config, EvidenceTypeInactive, ctx.db, ctx.header, val, penaltyAmount, num)
+			penaltyAmount = penaltyAmount.Div(new(big.Int).Mul(val.Token, big.NewInt(int64(ctx.config.PenaltyFractionForInactive))), big.NewInt(100))
 		}
-		val.Status = params.ValidatorOffline
-		val.Expelled = true
-		expelExpired := num + ctx.config.ExpelledRoundForInactive
-		if expelExpired > val.ExpelExpired {
-			val.ExpelExpired = expelExpired
-		}
-		ctx.db.UpdateValidator(val, old)
+
+		logData.Total, logData.FromWithdraw, logData.FromDeposit = doPenalize(ctx.config, EvidenceTypeInactive, ctx.db, ctx.header, val, penaltyAmount, num)
+
 		// receipt
 		rlpData, err := rlp.EncodeToBytes(logData)
 		if err != nil {
@@ -105,6 +101,7 @@ func (s *Staking) processDoubleSignV5(config *params.YouParams, currentDB *state
 		var signerAddr common.Address
 		if addr := evidence.addr.Load(); addr != nil {
 			signerAddr = addr.(common.Address)
+			log.Debug("signer addr from cache", "addr", signerAddr.String())
 		} else {
 			vldReader, err := s.blockChain.LookBackVldReaderForRound(doubleSign.Round, doubleSign.VoteType == Certificate)
 			if err != nil {
@@ -139,6 +136,7 @@ func (s *Staking) processDoubleSignV5(config *params.YouParams, currentDB *state
 
 			signerAddr = signer.MainAddress()
 			evidence.addr.Store(signerAddr)
+			log.Debug("signer addr after verify signatures ", "addr", signerAddr.String())
 		}
 
 		if signerAddr == (common.Address{}) {
@@ -146,11 +144,13 @@ func (s *Staking) processDoubleSignV5(config *params.YouParams, currentDB *state
 		}
 
 		if _, ok := doubleSignedValidators[signerAddr]; ok {
+			log.Debug("double sign, already processed", "addr", signerAddr.String())
 			return
 		}
 
 		val := currentDB.GetValidatorByMainAddr(signerAddr)
 		if val == nil {
+			log.Info("processDoubleSignV5, validator not exist in current state", "addr", signerAddr.String())
 			return
 		}
 
@@ -171,6 +171,8 @@ func (s *Staking) processDoubleSignV5(config *params.YouParams, currentDB *state
 					Data:        newLogData(LogTopicSlashing, nil, slashLogData).EncodeToBytes(),
 					BlockNumber: header.Number.Uint64(),
 				})
+			} else {
+				log.Warn("processDoubleSignV5 NewSlashData failed", "err", err)
 			}
 		}
 

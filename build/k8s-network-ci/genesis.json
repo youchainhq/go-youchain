@@ -21,46 +21,6 @@
     }
   },
   "validators": {
-    "0x0f63534d9816f7324267fc853b3b0ac7a7022196": {
-      "name": "",
-      "operatorAddress": "0x0F63534D9816f7324267fC853b3B0AC7A7022196",
-      "coinbase": "0x0F63534D9816f7324267fC853b3B0AC7A7022196",
-      "mainPubKey": "0x02ac52221e61af24ddd49237223695cd7e85542a5337119e6048e6c72e253187ca",
-      "blsPubKey": "0xacfa899911809a7a61c28221070fe3e71da346c6f18c3d042a932511e43e2905f2cfdaa293b2a733317c546b8ac140a61924907aefba7454fd3263e987c3c8df2f709157074e2f2c5bfe2334dc65273dce03a3d87224cc6d4d4bc9b9fc8dd25e",
-      "token": "0x4356d085dbca8ac00000",
-      "role": 3,
-      "status": 1
-    },
-    "0x47fcf5c421ef8e5d14b43b6a127c82f285292c83": {
-      "name": "",
-      "operatorAddress": "0x47fcF5C421eF8e5d14b43B6a127c82f285292c83",
-      "coinbase": "0x47fcF5C421eF8e5d14b43B6a127c82f285292c83",
-      "mainPubKey": "0x0208beeb219356966b27104efad1777b138ce6e1d1e9622c4a687e1ac19f8e46f8",
-      "blsPubKey": "0xb409ccb52ee5cbdb7aecde951e49157896fb0fa4b52e4fbc99adcded1997b168cefcb517301cf9430021ff77dd045c4b062d7fbfc606e007782480fa07b88a5bc91c3d6668f4205b432179555ba2dcdcc12b8402a280a74a1b179d1d0addfc59",
-      "token": "0x3f870857a3e0e3800000",
-      "role": 3,
-      "status": 1
-    },
-    "0x5a2e9c176f57c5d37bb1d6864f3662dca6e699d3": {
-      "name": "",
-      "operatorAddress": "0x5A2E9C176F57C5d37bB1D6864f3662dCa6E699d3",
-      "coinbase": "0x5A2E9C176F57C5d37bB1D6864f3662dCa6E699d3",
-      "mainPubKey": "0x02db5fe9a25a203b6e95a6a3ebf08c2d087cc5c54cb9c3a2a26be70e949e4b714b",
-      "blsPubKey": "0xaaef15f7333215ebf4aa71a11ac44ea4a4ad8c010c42041ac7e2449856efb9732b3c9b88fef90fcb4a998282686def8f0784e360afd3f09bf5b9413b7d8448c14a16558bb676829349a32b5b192d34d490ab005bb5f4fc562626bc60af73ca19",
-      "token": "0x7259756a8d6199800000",
-      "role": 3,
-      "status": 1
-    },
-    "0x843a9b823cdfb2b6d82cf59b90a7c13885c2ff97": {
-      "name": "",
-      "operatorAddress": "0x843a9B823cDfB2B6D82cf59B90a7C13885c2ff97",
-      "coinbase": "0x843a9B823cDfB2B6D82cf59B90a7C13885c2ff97",
-      "mainPubKey": "0x02d96ca98ef09d07919040ba2b3c537585be7c3f4dd670c099bc15b227fb6aaa76",
-      "blsPubKey": "0xa25fdb9de2b15e5ebfbbbef1ccfccbd5422c21ca53b1a354a63755757fe0c4fde40755ede18695989025198ef6f033520e18dcf52317254fe654f5ce5f28dcd43833bfe5af9eaa9c5061749aaa9d33d9a8cb9ce3c1ebbae5050fe7caf0d6f51c",
-      "token": "0x608fcf3d88748d000000",
-      "role": 3,
-      "status": 1
-    },
     "0x8e036959e057f0df5ffa0211a2548194c6cb08ff": {
       "name": "",
       "operatorAddress": "0x8E036959E057F0df5FFa0211A2548194C6Cb08FF",
@@ -129,6 +89,46 @@
       "blsPubKey": "0xaf1f6e9853a8b5ed698d0b4769b023f5a6e417809c9ca981f063d94ab81d1b9028ad675fd6a0e2614cd62b719861ff09127500f97b7277dfc83a5f4b3711736c9a188631f2f1e8216be744c6af64aaa3751dc3c24728dd595ef9605b466e065d",
       "token": "0xb35bf645f1ab93600000",
       "role": 2,
+      "status": 1
+    },
+    "0x0f63534d9816f7324267fc853b3b0ac7a7022196": {
+      "name": "",
+      "operatorAddress": "0x0F63534D9816f7324267fC853b3B0AC7A7022196",
+      "coinbase": "0x0F63534D9816f7324267fC853b3B0AC7A7022196",
+      "mainPubKey": "0x02ac52221e61af24ddd49237223695cd7e85542a5337119e6048e6c72e253187ca",
+      "blsPubKey": "0xacfa899911809a7a61c28221070fe3e71da346c6f18c3d042a932511e43e2905f2cfdaa293b2a733317c546b8ac140a61924907aefba7454fd3263e987c3c8df2f709157074e2f2c5bfe2334dc65273dce03a3d87224cc6d4d4bc9b9fc8dd25e",
+      "token": "0x4356d085dbca8ac00000",
+      "role": 3,
+      "status": 1
+    },
+    "0x47fcf5c421ef8e5d14b43b6a127c82f285292c83": {
+      "name": "",
+      "operatorAddress": "0x47fcF5C421eF8e5d14b43B6a127c82f285292c83",
+      "coinbase": "0x47fcF5C421eF8e5d14b43B6a127c82f285292c83",
+      "mainPubKey": "0x0208beeb219356966b27104efad1777b138ce6e1d1e9622c4a687e1ac19f8e46f8",
+      "blsPubKey": "0xb409ccb52ee5cbdb7aecde951e49157896fb0fa4b52e4fbc99adcded1997b168cefcb517301cf9430021ff77dd045c4b062d7fbfc606e007782480fa07b88a5bc91c3d6668f4205b432179555ba2dcdcc12b8402a280a74a1b179d1d0addfc59",
+      "token": "0x3f870857a3e0e3800000",
+      "role": 3,
+      "status": 1
+    },
+    "0x5a2e9c176f57c5d37bb1d6864f3662dca6e699d3": {
+      "name": "",
+      "operatorAddress": "0x5A2E9C176F57C5d37bB1D6864f3662dCa6E699d3",
+      "coinbase": "0x5A2E9C176F57C5d37bB1D6864f3662dCa6E699d3",
+      "mainPubKey": "0x02db5fe9a25a203b6e95a6a3ebf08c2d087cc5c54cb9c3a2a26be70e949e4b714b",
+      "blsPubKey": "0xaaef15f7333215ebf4aa71a11ac44ea4a4ad8c010c42041ac7e2449856efb9732b3c9b88fef90fcb4a998282686def8f0784e360afd3f09bf5b9413b7d8448c14a16558bb676829349a32b5b192d34d490ab005bb5f4fc562626bc60af73ca19",
+      "token": "0x7259756a8d6199800000",
+      "role": 3,
+      "status": 1
+    },
+    "0x843a9b823cdfb2b6d82cf59b90a7c13885c2ff97": {
+      "name": "",
+      "operatorAddress": "0x843a9B823cDfB2B6D82cf59B90a7C13885c2ff97",
+      "coinbase": "0x843a9B823cDfB2B6D82cf59B90a7C13885c2ff97",
+      "mainPubKey": "0x02d96ca98ef09d07919040ba2b3c537585be7c3f4dd670c099bc15b227fb6aaa76",
+      "blsPubKey": "0xa25fdb9de2b15e5ebfbbbef1ccfccbd5422c21ca53b1a354a63755757fe0c4fde40755ede18695989025198ef6f033520e18dcf52317254fe654f5ce5f28dcd43833bfe5af9eaa9c5061749aaa9d33d9a8cb9ce3c1ebbae5050fe7caf0d6f51c",
+      "token": "0x608fcf3d88748d000000",
+      "role": 3,
       "status": 1
     }
   },

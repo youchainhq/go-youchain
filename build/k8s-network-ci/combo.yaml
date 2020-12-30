@@ -72,6 +72,7 @@ spec:
               containerPort: 7283
           args:
             - '-mine'
+            - '-rpc.ipcenabled'
             - '-rpc.host'
             - '0.0.0.0'
             - '-rpc.port'
@@ -128,7 +129,7 @@ spec:
         - name: harborsecret
       containers:
         - name: {ci_identify_job_name}
-          image: reg.youchaininc.com/maisi/yctest:0.7.8
+          image: reg.youchaininc.com/maisi/yctest:0.8.2
           command: ["/bin/yctest-linux-amd64"]
           imagePullPolicy: Always
           args:

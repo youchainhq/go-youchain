@@ -85,7 +85,7 @@ func checkSetCiConfig(nodeConfig *node.Config) (bootNodeId int) {
 		envKey = strings.ReplaceAll(envKey, "-", "_")
 		envKey = envKey + envSuffixHost
 		bootNodeIp, has := os.LookupEnv(envKey)
-		logging.Debug("env key: ", envKey, "has:", has, "value:", bootNodeIp)
+		logging.Debug("boot node ip", "env key: ", envKey, "has:", has, "value:", bootNodeIp)
 		if has {
 			if strings.Contains(nodeConfig.P2PBootNode, "{ip}") {
 				nodeConfig.P2PBootNode = strings.Replace(nodeConfig.P2PBootNode, "{ip}", bootNodeIp, 1)

@@ -316,7 +316,7 @@ func testNetProtocols() VersionsMap {
 	v5.SignatureRequired[RoleChancellor] = false
 	v5.SignatureRequired[RoleSenator] = false
 	v5.Version = YouV5
-	v5.InactivityPenaltyWaitRounds = 256
+	v5.InactivityPenaltyWaitRounds = 384
 	v5.PenaltyFractionForInactive = 1
 	versionMap[v5.Version] = v5
 
@@ -339,7 +339,7 @@ func protocolsForTestCase() VersionsMap {
 			CertValThreshold:      4000,
 			ConsensusTimeout:      3000 * time.Millisecond,
 			ConsensusStepInterval: 500 * time.Millisecond,
-			StakeLookBack:         64,
+			StakeLookBack:         16,
 			SeedLookBack:          8,
 			EnableBls:             true,
 			EnableInactivity:      false,
