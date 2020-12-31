@@ -91,7 +91,6 @@ func TestSlashDataV5(t *testing.T) {
 		Total:        nil,
 		FromWithdraw: nil,
 		FromDeposit:  nil,
-		Evidence:     nil,
 	}
 	bs, err := rlp.EncodeToBytes(data)
 	require.NoError(t, err)

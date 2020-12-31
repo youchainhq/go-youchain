@@ -160,7 +160,7 @@ func (sm *SortitionManager) isProposer(round *big.Int, roundIndex uint32) (bool,
 		sm.NewStepView(round, roundIndex, uint32(UConStepProposal), view)
 
 		logging.Info("---isProposer: YES.", "Round", round, "RoundIndex", roundIndex, "Kind", params.ValidatorKindToString(view.ValidatorType), "Sub-Users", subUsers,
-			"stake", stake, "totalStake", totalStake, "seed", lookBackSeed.String()) //, "addr", sm.addr.String())
+			"stake", stake, "totalStake", totalStake, "seed", lookBackSeed.String(), "myPriority", view.Priority.String()) //, "addr", sm.addr.String())
 
 		//todo metrics
 		return true, view

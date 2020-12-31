@@ -157,22 +157,30 @@ func (s *Staking) processDoubleSignV5(config *params.YouParams, currentDB *state
 		doubleSignedValidators[signerAddr] = struct{}{}
 
 		penaltyAmount := new(big.Int).Div(new(big.Int).Mul(val.Token, new(big.Int).SetUint64(config.PenaltyFractionForDoubleSign)), big.NewInt(100))
-		totalPenalty, affectedRecords, _ := doPenalize(config, EvidenceTypeDoubleSign, currentDB, header, val, penaltyAmount, doubleSign.Round)
+		totalPenalty, affectedRecords, pRecords := doPenalize(config, EvidenceTypeDoubleSign, currentDB, header, val, penaltyAmount, doubleSign.Round)
 
 		var affected int
 		// penalty
 		if totalPenalty.Cmp(bigZero) > 0 {
 			affected++
 			result.affectedValidators = append(result.affectedValidators, &signerAddr)
-			if slashLogData, err := NewSlashData(EventTypeDoubleSign, val.MainAddress(), totalPenalty, affectedRecords, &evidence); err == nil {
+			logData := SlashDataV5{
+				Type:         EventTypeDoubleSign,
+				MainAddress:  val.MainAddress(),
+				Total:        totalPenalty,
+				FromWithdraw: affectedRecords,
+				FromDeposit:  pRecords,
+			}
+			rlpData, err := rlp.EncodeToBytes(logData)
+			if err == nil {
 				receipt.Logs = append(receipt.Logs, &types.Log{
 					Address:     params.StakingModuleAddress,
 					Topics:      []common.Hash{common.StringToHash(LogTopicSlashing)},
-					Data:        newLogData(LogTopicSlashing, nil, slashLogData).EncodeToBytes(),
+					Data:        rlpData,
 					BlockNumber: header.Number.Uint64(),
 				})
 			} else {
-				log.Warn("processDoubleSignV5 NewSlashData failed", "err", err)
+				log.Error("rlp encode SlashDataV5 failed", "err", err)
 			}
 		}
 

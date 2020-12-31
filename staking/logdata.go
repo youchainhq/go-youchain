@@ -230,7 +230,6 @@ type SlashDataV5 struct {
 	Total        *big.Int               `json:"penaltyAmount"` // total
 	FromWithdraw []*SlashWithdrawRecord `json:"fromWithdraw"`  // from withdraw records
 	FromDeposit  []*PenaltyRecord       `json:"fromDeposit"`
-	Evidence     interface{}            `json:"evidence"` // confirmed evidence
 }
 type PenaltyRecord struct {
 	Address common.Address `json:"address"`
