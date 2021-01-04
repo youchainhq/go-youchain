@@ -57,6 +57,9 @@ const (
 	LogTopicDelegationSubEffect = "delegation_sub_effect" // 0x000000000000000000000064656c65676174696f6e5f7375625f656666656374
 
 	LogTopicProposerRewards = "proposer_rewards" // 0x0000000000000000000000000000000070726f706f7365725f72657761726473
+
+	//0x00007265636f7665725f66726f6d5f657870697265645f657870656c6c696e67
+	LogTopicRecoverFromExpiredExpelling = "recover_from_expired_expelling"
 )
 
 var (

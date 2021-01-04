@@ -40,48 +40,73 @@ const (
 	Certificate
 )
 
-func inactivitySlashingYouV5(ctx *context) {
+// slashingAndRecoveringYouV5 includes inactivity slashing and recover validators from expired expelling.
+func slashingAndRecoveringYouV5(ctx *context) {
 	if ctx.config.Version < params.YouV5 {
 		return
 	}
 
 	num := ctx.header.Number.Uint64()
-	waitRounds := ctx.config.InactivityPenaltyWaitRounds
 	all := ctx.db.GetValidatorsForUpdate()
 	for _, val := range all {
-		if val.Role == params.RoleHouse || val.IsOffline() {
-			continue
-		}
-		if num-val.LastActive() <= waitRounds {
+		if val.Expelled && val.ExpelExpired < num {
+			// recover
+			recoverFromExpiredExpelling(ctx, val, num)
 			continue
 		}
 
-		logging.Warn("inactivitySlashingYouV5", "val", val.MainAddress().String(), "lastActive", val.LastActive(), "height", num, "waitRounds", waitRounds)
-		logData := SlashDataV5{
-			Type:        EventTypeInactive,
-			MainAddress: val.MainAddress(),
-		}
-		// inactive
-		penaltyAmount := new(big.Int)
-		if ctx.config.PenaltyFractionForInactive > 0 {
-			penaltyAmount = penaltyAmount.Div(new(big.Int).Mul(val.Token, big.NewInt(int64(ctx.config.PenaltyFractionForInactive))), big.NewInt(100))
-		}
-
-		logData.Total, logData.FromWithdraw, logData.FromDeposit = doPenalize(ctx.config, EvidenceTypeInactive, ctx.db, ctx.header, val, penaltyAmount, num)
-
-		// receipt
-		rlpData, err := rlp.EncodeToBytes(logData)
-		if err != nil {
-			log.Error("rlp encode SlashDataV5 failed", "err", err)
-			continue
-		}
-		ctx.receipt.Logs = append(ctx.receipt.Logs, &types.Log{
-			Address:     params.StakingModuleAddress,
-			Topics:      []common.Hash{common.StringToHash(LogTopicSlashing)},
-			Data:        rlpData,
-			BlockNumber: num,
-		})
+		// inactivity check and slashing
+		inactivitySlashing(ctx, val, num)
 	}
+}
+
+func recoverFromExpiredExpelling(ctx *context, val *state.Validator, height uint64) {
+	old := val.PartialCopy()
+	val.Expelled = false
+	val.ExpelExpired = 0
+	updated := ctx.db.UpdateValidator(val, old)
+	ctx.receipt.Logs = append(ctx.receipt.Logs, &types.Log{
+		Address:     params.StakingModuleAddress,
+		Topics:      []common.Hash{common.StringToHash(LogTopicRecoverFromExpiredExpelling), val.MainAddress().Hash()},
+		Data:        common.BytesToHash(hexutil.Uint64ToBytes(old.ExpelExpired)).Bytes(),
+		BlockNumber: height,
+	})
+	log.Info("recover from expired expelling", "val", old.MainAddress().String(), "expelExpired", old.ExpelExpired, "height", height, "updated", updated)
+}
+
+func inactivitySlashing(ctx *context, val *state.Validator, num uint64) {
+	if val.Role == params.RoleHouse || val.IsOffline() {
+		return
+	}
+	waitRounds := ctx.config.InactivityPenaltyWaitRounds
+	if num-val.LastActive() <= waitRounds {
+		return
+	}
+	logging.Warn("inactivitySlashingYouV5", "val", val.MainAddress().String(), "lastActive", val.LastActive(), "height", num, "waitRounds", waitRounds)
+	logData := SlashDataV5{
+		Type:        EventTypeInactive,
+		MainAddress: val.MainAddress(),
+	}
+	// inactive
+	penaltyAmount := new(big.Int)
+	if ctx.config.PenaltyFractionForInactive > 0 {
+		penaltyAmount = penaltyAmount.Div(new(big.Int).Mul(val.Token, big.NewInt(int64(ctx.config.PenaltyFractionForInactive))), big.NewInt(100))
+	}
+
+	logData.Total, logData.FromWithdraw, logData.FromDeposit = doPenalize(ctx.config, EvidenceTypeInactive, ctx.db, ctx.header, val, penaltyAmount, num)
+
+	// receipt
+	rlpData, err := rlp.EncodeToBytes(logData)
+	if err != nil {
+		log.Error("rlp encode SlashDataV5 failed", "err", err)
+		return
+	}
+	ctx.receipt.Logs = append(ctx.receipt.Logs, &types.Log{
+		Address:     params.StakingModuleAddress,
+		Topics:      []common.Hash{common.StringToHash(LogTopicSlashing)},
+		Data:        rlpData,
+		BlockNumber: num,
+	})
 }
 
 func (s *Staking) processDoubleSignV5(config *params.YouParams, currentDB *state.StateDB, header *types.Header, parentHeight uint64, evidence Evidence, receipt *types.Receipt, result *processedEvidencesResult, doubleSignedValidators map[common.Address]struct{}) {

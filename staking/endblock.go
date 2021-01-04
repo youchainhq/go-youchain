@@ -228,7 +228,8 @@ func (s *Staking) endStakingPeriod(ctx *context, txs []*types.Transaction) (err 
 	}
 
 	// YouV5 inactivity slashing (only for chamber validators)
-	inactivitySlashingYouV5(ctx)
+	// and recover from expired expelling
+	slashingAndRecoveringYouV5(ctx)
 
 	// distributes rewards to each account
 	var settled map[common.Address]struct{}
