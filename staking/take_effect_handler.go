@@ -287,12 +287,20 @@ func teDelegationSub(ctx *messageContext, payload []byte) error {
 
 	// rehearse the withdraw for more business check
 	remainToken := new(big.Int).Sub(dfrom.Token, withdrawToken)
-	// If remain token not zero, AND (less than MinDelegationTokens OR the validator is offline)
-	// then force to withdraw all.
-	if remainToken.Sign() > 0 &&
-		(remainToken.Cmp(ctx.Cfg.MinDelegationTokens) < 0 || val.IsOffline()) {
-		changed = true
-		withdrawToken.Add(withdrawToken, remainToken)
+	if ctx.Cfg.Version < params.YouV5 {
+		// If remain token not zero, AND (less than MinDelegationTokens OR the validator is offline)
+		// then force to withdraw all.
+		if remainToken.Sign() > 0 &&
+			(remainToken.Cmp(ctx.Cfg.MinDelegationTokens) < 0 || val.IsOffline()) {
+			changed = true
+			withdrawToken.Add(withdrawToken, remainToken)
+		}
+	} else {
+		if remainToken.Sign() > 0 &&
+			(remainToken.Cmp(ctx.Cfg.MinDelegationTokens) < 0) {
+			changed = true
+			withdrawToken.Add(withdrawToken, remainToken)
+		}
 	}
 	// a - b = a + (-b)
 	negWithdraw := new(big.Int).Neg(withdrawToken)
