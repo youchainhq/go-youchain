@@ -131,6 +131,10 @@ func teDeposit(ctx *messageContext, payload []byte) error {
 	stake := newVal.Stake.Uint64()
 	if threshold := ctx.Cfg.MaxStakes[newVal.Role]; threshold > 0 && stake > threshold {
 		log.Error("errStakesOverflow", "value", newVal.Token, "stake", stake, "threshold", threshold)
+		if ctx.Cfg.Version >= params.YouV5 {
+			// when deposit failed, return the detained tokens.
+			ctx.State.AddBalance(ctx.Msg.From(), tx.Value)
+		}
 		// log on failed
 		//add a flag for this log
 		t1 := old.MainAddress().Hash().Bytes()
@@ -215,6 +219,10 @@ func teDelegationAdd(ctx *messageContext, payload []byte) error {
 	val := db.GetValidatorByMainAddr(d.Validator)
 	delegator := ctx.Msg.From()
 	if val.Expelled || val.AcceptDelegation == params.NotAcceptDelegation {
+		if ctx.Cfg.Version >= params.YouV5 {
+			// when deposit failed, return the detained tokens.
+			ctx.State.AddBalance(delegator, d.Value)
+		}
 		// log on failed
 		ctx.Receipt.Logs = append(ctx.Receipt.Logs, &types.Log{
 			Address: params.StakingModuleAddress,
@@ -229,6 +237,10 @@ func teDelegationAdd(ctx *messageContext, payload []byte) error {
 	totalTokens.Add(totalTokens, d.Value)
 	stake := params.YOUToStake(totalTokens).Uint64()
 	if threshold := ctx.Cfg.MaxStakes[val.Role]; threshold > 0 && stake > threshold {
+		if ctx.Cfg.Version >= params.YouV5 {
+			// when deposit failed, return the detained tokens.
+			ctx.State.AddBalance(delegator, d.Value)
+		}
 		// over flow
 		//add a flag for this log
 		t1 := delegator.Hash().Bytes()
