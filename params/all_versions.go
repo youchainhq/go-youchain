@@ -190,6 +190,8 @@ func mainNetProtocols() VersionsMap {
 
 	v5.SignatureRequired[RoleChancellor] = false
 	v5.SignatureRequired[RoleSenator] = false
+	v5.MinSelfStakes[RoleChancellor] = 150000
+	v5.MinSelfStakes[RoleSenator] = 150000
 	v5.Version = YouV5
 	v5.InactivityPenaltyWaitRounds = 1024
 	v5.PenaltyFractionForInactive = 0
@@ -315,6 +317,8 @@ func testNetProtocols() VersionsMap {
 
 	v5.SignatureRequired[RoleChancellor] = false
 	v5.SignatureRequired[RoleSenator] = false
+	v5.MinSelfStakes[RoleChancellor] = 500
+	v5.MinSelfStakes[RoleSenator] = 500
 	v5.Version = YouV5
 	v5.InactivityPenaltyWaitRounds = 384
 	v5.PenaltyFractionForInactive = 1
@@ -441,6 +445,8 @@ func protocolsForTestCase() VersionsMap {
 
 	v5.SignatureRequired[RoleChancellor] = false
 	v5.SignatureRequired[RoleSenator] = false
+	v5.MinSelfStakes[RoleChancellor] = 500
+	v5.MinSelfStakes[RoleSenator] = 500
 	v5.Version = YouV5
 	v5.InactivityPenaltyWaitRounds = 32
 	v5.PenaltyFractionForInactive = 1

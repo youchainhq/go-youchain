@@ -61,7 +61,8 @@ const (
 	SstoreCleanRefund uint64 = 4200  // Once per SSTORE operation for resetting to the original non-zero value
 	SstoreClearRefund uint64 = 15000 // Once per SSTORE operation for clearing an originally existing storage slot
 
-	TxValidatorGas uint64 = 100000
+	TxValidatorGas   uint64 = 100000
+	TxValCreationGas uint64 = 900000 // more gas for creates validator
 
 	Sha3Gas          uint64 = 30    // Once per SHA3 operation.
 	Sha3WordGas      uint64 = 6     // Once per word of the SHA3 operation's data.

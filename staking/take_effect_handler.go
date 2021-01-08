@@ -162,6 +162,13 @@ func teWithdraw(ctx *messageContext, payload []byte) error {
 	if withdrawToken.Cmp(newVal.SelfToken) > 0 {
 		changed = true
 		withdrawToken = new(big.Int).Set(newVal.SelfToken)
+	} else if ctx.Cfg.Version >= params.YouV5 {
+		remainToken := new(big.Int).Sub(newVal.SelfToken, withdrawToken)
+		remainStake := params.YOUToStake(remainToken)
+		if remainStake.Uint64() < ctx.Cfg.MinSelfStakes[newVal.Role] {
+			changed = true
+			withdrawToken.Set(old.SelfToken)
+		}
 	}
 	newVal.SelfToken.Sub(newVal.SelfToken, withdrawToken)
 	newStake := params.YOUToStake(newVal.SelfToken)

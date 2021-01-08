@@ -87,6 +87,12 @@ func (t *TxConverter) ApplyMessage(msgCtx *core.MessageContext) ([]byte, uint64,
 		}
 		return nil, msgCtx.InitialGas, true, nil
 	}
+	if msgCtx.Cfg.CurrYouParams.Version >= params.YouV5 && msg.Action == ValidatorCreate {
+		if err := msgCtx.UseGas(params.TxValCreationGas); err != nil {
+			logging.Warn("not enough gas for validator creation", "err", err)
+			return nil, msgCtx.GasUsed(), true, nil
+		}
+	}
 
 	err = getHandler(msg.Action)(msgCtx, msg.Payload)
 	if err != nil {
