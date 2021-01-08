@@ -16,4 +16,4 @@
 
 package params
 
-var DefaultMinGasPrice uint64 = GLu // 1GLu
+var DefaultMinGasPrice uint64 = 100 * GLu // 1GLu
