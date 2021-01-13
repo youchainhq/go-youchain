@@ -360,19 +360,22 @@ func addWithdrawLog(ctx *messageContext, newVal *state.Validator, receipt, deleg
 		progLogMsg = "delegator withdraw record"
 	}
 
-	// build withdraw log
-	data := getWithdrawLogData(completionHeight, stakeDelta.Uint64(), withdrawToken, changed, vStatus, dStatus)
-	rLog := &types.Log{
-		Address:     params.StakingModuleAddress,
-		Topics:      []common.Hash{common.StringToHash(topic), newVal.MainAddress().Hash()},
-		Data:        data,
-		BlockNumber: creationHeight,
+	// fix withdraw log on YouV5
+	if ctx.Cfg.Version >= params.YouV5 {
+		// build withdraw log
+		data := getWithdrawLogData(completionHeight, stakeDelta.Uint64(), withdrawToken, changed, vStatus, dStatus)
+		rLog := &types.Log{
+			Address:     params.StakingModuleAddress,
+			Topics:      []common.Hash{common.StringToHash(topic), newVal.MainAddress().Hash()},
+			Data:        data,
+			BlockNumber: creationHeight,
+		}
+		if isValidator {
+			rLog.Topics = append(rLog.Topics, delegator.Hash())
+		}
+		// append log to current end-block receipt.
+		ctx.Receipt.Logs = append(ctx.Receipt.Logs, rLog)
 	}
-	if isValidator {
-		rLog.Topics = append(rLog.Topics, delegator.Hash())
-	}
-	// append log to current end-block receipt.
-	ctx.Receipt.Logs = append(ctx.Receipt.Logs)
 
 	log.Info(progLogMsg, "operator", ctx.Msg.From(), "val", newVal.MainAddress().String(), "receipt", receipt, "withdrawToken", withdrawToken, "newToken", newToken, "stakeDelta", stakeDelta, "newStake", newStake, "creationHeight", creationHeight, "complete", completionHeight, "withdrawAmountChanged", changed)
 }
