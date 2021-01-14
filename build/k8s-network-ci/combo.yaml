@@ -47,7 +47,7 @@ metadata:
 spec:
   serviceName: "youchain-{ci_identify_app_name_version}"
   podManagementPolicy: "Parallel"
-  replicas: 12
+  replicas: 8
   template:
     metadata:
       labels:
@@ -138,9 +138,9 @@ spec:
             - '-wsport'
             - '8284'
             - '-minnode'
-            - '12'
+            - '8'
             - '-maxnode'
-            - '12'
+            - '8'
             - '-conf'
             - 'conf0.json'
             - '-branch'

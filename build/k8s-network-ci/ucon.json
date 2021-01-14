@@ -42,34 +42,6 @@
     "blssignkey": "45609e567c69febd414245e192b36c59a86d7b6d2487f25d5c63a903c20b5be8"
   },
   {
-    "uconkey": "062eac9858e3a999fd57984afefb27bc29302c00a23441e10b8f5fbe0bd2dce5",
-    "uconvalidator": 1,
-    "stake": 1580000000000000000000000,
-    "coinbase": "0xCCc6936E6FcbEdF2Db1bECf46399E0E153dd189c",
-    "blssignkey": "513b344ab47abcd999a8a74ae8c4035e1dbb925bb92f6adf9d5ad60dd69c29e6"
-  },
-  {
-    "uconkey": "de2b14e2f7f5c71a5831ec75db75bea53a2190de550e7522ac5cf59e841cab91",
-    "uconvalidator": 1,
-    "stake": 1580000000000000000000000,
-    "coinbase": "0x5A2E9C176F57C5d37bB1D6864f3662dCa6E699d3",
-    "blssignkey": "079af920354fd4108180675540a52961827780060ba3bd2a3b018ddf5779c730"
-  },
-  {
-    "uconkey": "242fdcc1e642cc454f777295bb2fded6c7b7237f6006ff41638cd0e25dd3d32a",
-    "uconvalidator": 1,
-    "stake": 1580000000000000000000000,
-    "coinbase": "0x843a9B823cDfB2B6D82cf59B90a7C13885c2ff97",
-    "blssignkey": "18b64e68a2f30920ee791adcd69db428e72a3f6870f9aa2283ac148db3bebee2"
-  },
-  {
-    "uconkey": "3213b02b1c769fc282b3bac4a6f4150c0dbf4cd38dfe8041280346fb144a367f",
-    "uconvalidator": 1,
-    "stake": 1580000000000000000000000,
-    "coinbase": "0x47fcF5C421eF8e5d14b43B6a127c82f285292c83",
-    "blssignkey": "331a5c7890b6e81471aec6a44a334e10fb51f2e1c840c32a57efe81be0afc655"
-  },
-  {
     "uconkey": "4f8559f0608940bce8fbcda86bd2f8a1dfdc8b4d01dc5a2fed8e9bb9b26142e0",
     "uconvalidator": 1,
     "stake": 694000,
