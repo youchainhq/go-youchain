@@ -471,7 +471,7 @@ func (y *PublicMainApi) GetTransactionReceipt(ctx context.Context, hash common.H
 	var signer = types.MakeSigner(y.c.youChain.BlockChain().CurrentBlock().Number())
 	from, _ := types.Sender(signer, tx)
 
-	fields := receiptJsonMap(receipt, hash, blockNumber)
+	fields := receiptJsonMap(receipt, blockHash, blockNumber)
 	fields["transactionHash"] = hash
 	fields["transactionIndex"] = hexutil.Uint64(index)
 	fields["from"] = from
